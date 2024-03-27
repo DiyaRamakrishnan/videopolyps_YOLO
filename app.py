@@ -96,70 +96,72 @@ def main():
 
    # Main content
    page = st.sidebar.selectbox("Go to", ["PolypDetect", "Info Page", "Comments", "QR Code"])
-    
-    elif page == "PolypDetect":
-        st.title('PolypDetect')
-        st.write("""
-        This website utilizes a Machine Learning Model to detect polyps in the colon.
-        Polyps are clumps of cells that form on the lining of the colon.
-        Polyps have been linked to high severity in patients who have an Inflammatory Bowl Disease (IBS).
-        This website can help doctors to ensure that they identify all polyps, as some can be discrete.
-        Please remember that the model is not perfect, so use it as a second method.
-        """)
 
-        # Input side
-        st.markdown('<div class="container">', unsafe_allow_html=True)
-        st.markdown('<div class="input-side">', unsafe_allow_html=True)
-        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)  # Mellow blue color
-        uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4"])
-        st.markdown('</div>', unsafe_allow_html=True)
+   if page == "PolypDetect":
+       st.title('PolypDetect')
+       st.write("""
+       This website utilizes a Machine Learning Model to detect polyps in the colon.
+       Polyps are clumps of cells that form on the lining of the colon.
+       Polyps have been linked to high severity in patients who have an Inflammatory Bowl Disease (IBS).
+       This website can help doctors to ensure that they identify all polyps, as some can be discrete.
+       Please remember that the model is not perfect, so use it as a second method.
+       """)
 
-        # Output side
-        st.markdown('<div class="output-side">', unsafe_allow_html=True)
-        if uploaded_file is not None:
-            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)  # Mellow blue color
-            # Perform detection and display result
-            if st.button('Detect Polyps'):
-                st.write("Performing detection...")  # Placeholder for actual detection process
-                # Placeholder for displaying detected result
-                if uploaded_file.type.startswith('image'):
-                    img_array = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-                    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
-                    img = cv2.resize(img, (img_length, img_width))
-                    input_data = np.array([img], dtype=np.float32) / 255.0
-                    prediction = model.predict(input_data)
-                    if prediction[0][0] > 0.5:
-                        result = "True"
-                    else:
-                        result = "False"
-                    grad_cam_result = get_grad_cam(grad_cam_model, img, class_index=1, img_length=img_length, img_width=img_width)
-                    st.write(f"Prediction: {result}")
-                    st.write(f"Model Output: {prediction[0][0]}")
-                    if grad_cam_result is not None:
-                        st.image(grad_cam_result, caption='Grad-CAM Result', width = 500, output_format='JPEG')
-                    else:
-                        st.write("Grad-CAM image is None. Check the image generation process.")
-                elif uploaded_file.type.startswith('video'):
-                    video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
-                    with open(video_path, 'wb') as f:
-                        f.write(uploaded_file.read())
-                    frames = process_video(video_path)
-                    # Placeholder for video processing and polyp detection
-                    st.write("Video processing and polyp detection are not implemented yet.")
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
-    elif page == "Info Page":
-        show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
+       # Input side
+       st.markdown('<div class="container">', unsafe_allow_html=True)
+       st.markdown('<div class="input-side">', unsafe_allow_html=True)
+       st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)  # Mellow blue color
+       uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4"])
+       st.markdown('</div>', unsafe_allow_html=True)
 
-    elif page == "QR Code":
-        st.title("QR Code")
-        qr_image_path = "polypdetect_qr_code.png"
-        st.image(qr_image_path, caption="Please use the QR code to send this app to people you know!", width=500)
 
-    elif page == "Comments":
-        st.title('Comments')
-        st.write("""
+       # Output side
+       st.markdown('<div class="output-side">', unsafe_allow_html=True)
+       if uploaded_file is not None:
+           st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)  # Mellow blue color
+           # Perform detection and display result
+           if st.button('Detect Polyps'):
+               st.write("Performing detection...")  # Placeholder for actual detection process
+               # Placeholder for displaying detected result
+               if uploaded_file.type.startswith('image'):
+                   img_array = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+                   img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+                   img = cv2.resize(img, (img_length, img_width))
+                   input_data = np.array([img], dtype=np.float32) / 255.0
+                   prediction = model.predict(input_data)
+                   if prediction[0][0] > 0.5:
+                       result = "True"
+                   else:
+                       result = "False"
+                   grad_cam_result = get_grad_cam(grad_cam_model, img, class_index=1, img_length=img_length, img_width=img_width)
+                   st.write(f"Prediction: {result}")
+                   st.write(f"Model Output: {prediction[0][0]}")
+                   if grad_cam_result is not None:
+                       st.image(grad_cam_result, caption='Grad-CAM Result', width = 500, output_format='JPEG')
+                   else:
+                       st.write("Grad-CAM image is None. Check the image generation process.")
+               elif uploaded_file.type.startswith('video'):
+                   video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
+                   with open(video_path, 'wb') as f:
+                       f.write(uploaded_file.read())
+                   frames = process_video(video_path)
+                   # Placeholder for video processing and polyp detection
+                   st.write("Video processing and polyp detection are not implemented yet.")
+       st.markdown('</div>', unsafe_allow_html=True)
+       st.markdown('</div>', unsafe_allow_html=True)
+       
+   elif page == "Info Page":
+       show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
+
+   elif page == "QR Code":
+       st.title("QR Code")
+       qr_image_path = "polypdetect_qr_code.png"
+       st.image(qr_image_path, caption="Please use the QR code to send this app to people you know!", width=500)
+
+   elif page == "Comments":
+       st.title('Comments')
+       st.write("""
         Leave your comments and feedback below:
         """)
 
