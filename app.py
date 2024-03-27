@@ -51,8 +51,9 @@ def main():
 
         if uploaded_file:
             if uploaded_file.type.startswith('image'):
-                img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-                img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+                img = uploaded_file.read()
+                img_array = np.asarray(bytearray(img), dtype=np.uint8)
+                img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
                 st.image(img, caption="Uploaded Image", use_column_width=True)
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
@@ -63,11 +64,16 @@ def main():
         if st.button("Detect Polyp"):
             if uploaded_file.type.startswith('image'):
                 st.write("Detecting polyp in the uploaded image...")
-                img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-                img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+                img_array = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+                img = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
                 result, probability = process_image(img)
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
+                
+                # Display Grad CAM image
+                grad_cam_img = get_grad_cam(grad_cam_model, img)
+                st.image(grad_cam_img, caption="Grad CAM Image", use_column_width=True)
+                
             elif uploaded_file.type.startswith('video'):
                 st.write("Detecting polyp in the selected frame...")
                 st.warning("Polyp detection for videos is not implemented yet.")
