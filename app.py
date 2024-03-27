@@ -47,7 +47,7 @@ def main():
         Please remember that the model is not perfect, so use it as a second method.
         """)
 
-        uploaded_file = st.file_uploader("Upload Image or Video", type=["jpg", "jpeg", "png", "mp4", "mov"])
+        uploaded_file = st.file_uploader("Upload Image or Video")
 
         if uploaded_file:
             if uploaded_file.type.startswith('image'):
@@ -57,7 +57,7 @@ def main():
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
             elif uploaded_file.type.startswith('video'):
-                video_path = os.path.join(script_dir, 'temp_video.mov')  # Save .mov file as .mov
+                video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                 with open(video_path, 'wb') as f:
                     f.write(uploaded_file.read())
                 frames = process_video(video_path)
@@ -66,6 +66,9 @@ def main():
                 result, probability = process_image(selected_frame)
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
+
+                # Display a preview image of the selected frame
+                st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True)
 
     elif page == "Info Page":
         show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
