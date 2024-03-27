@@ -138,7 +138,7 @@ def main():
                     f.write(uploaded_file.read())
                 frame_number = st.number_input("Frame Number", value=0, step=1)
                 selected_frame = process_video(video_path, frame_number)
-                st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True, output_format='JPEG')
+                st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', width=500, output_format='JPEG')
                 st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)  # Mellow blue color
                 # Perform detection and display result
                 result, probability = process_image(selected_frame)
