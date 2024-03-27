@@ -162,48 +162,47 @@ def main():
    elif page == "Comments":
        st.title('Comments')
        st.write("""
-        Leave your comments and feedback below:
-        """)
+       Leave your comments and feedback below:
+       """)
 
-        # Add comment box
-        user_name = st.text_input("Your Name", max_chars=50)
-        comment = st.text_area("Your Comment", max_chars=200)
-        if st.button("Submit"):
-            if len(comment.strip()) > 0:
-                # Add the comment to the list
-                with open("comments.txt", "a") as file:
-                    file.write(f"{user_name}: {comment}\n")
-                st.success("Comment submitted successfully!")
-                comment = ""
-            else:
-                st.warning("Please enter a comment before submitting.")
-        
-        # Display comments
-        st.write("### Comments:")
-        comments = []
-        with open("comments.txt", "r") as file:
-            comments = file.readlines()
-        if comments:
-            for comment_text in comments:
-                # Split comment into name and message parts
-                parts = comment_text.split(":", 1)
-                if len(parts) == 2:
-                    name, comment_msg = parts
-                    # Display the name above the comment
-                    st.write(f"**{name.strip()}**")
-                    st.write(f"{comment_msg.strip()}")
-                else:
-                    st.write(comment_text.strip())
+       # Add comment box
+       user_name = st.text_input("Your Name", max_chars=50)
+       comment = st.text_area("Your Comment", max_chars=200)
+       if st.button("Submit"):
+           if len(comment.strip()) > 0:
+               # Add the comment to the list
+               with open("comments.txt", "a") as file:
+                   file.write(f"{user_name}: {comment}\n")
+               st.success("Comment submitted successfully!")
+               comment = ""
+           else:
+               st.warning("Please enter a comment before submitting.")
+       
+       # Display comments
+       st.write("### Comments:")
+       comments = []
+       with open("comments.txt", "r") as file:
+           comments = file.readlines()
+       if comments:
+           for comment_text in comments:
+               # Split comment into name and message parts
+               parts = comment_text.split(":", 1)
+               if len(parts) == 2:
+                   name, comment_msg = parts
+                   # Display the name above the comment
+                   st.write(f"**{name.strip()}**")
+                   st.write(f"{comment_msg.strip()}")
+               else:
+                   st.write(comment_text.strip())
 
-        # Add button to delete all comments
-        if st.button("Delete All Comments"):
-            # Clear the comments file
-            with open("comments.txt", "w") as file:
-                file.truncate(0)
-            st.success("All comments deleted successfully!")
-            # Reset the page
-            st.experimental_rerun()
+       # Add button to delete all comments
+       if st.button("Delete All Comments"):
+           # Clear the comments file
+           with open("comments.txt", "w") as file:
+               file.truncate(0)
+           st.success("All comments deleted successfully!")
+           # Reset the page
+           st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
-
