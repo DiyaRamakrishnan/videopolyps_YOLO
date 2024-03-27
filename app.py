@@ -53,22 +53,12 @@ def main():
             if uploaded_file.type.startswith('image'):
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                result, probability = process_image(img)
-                st.write(f"Prediction: {result}")
-                st.write(f"Probability: {probability}")
+                st.image(img, caption="Uploaded Image", use_column_width=True)
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                 with open(video_path, 'wb') as f:
                     f.write(uploaded_file.read())
-                frames = process_video(video_path)
-                selected_frame_index = st.select_slider('Select a frame for processing', range(len(frames)))
-                selected_frame = frames[selected_frame_index]
-                result, probability = process_image(selected_frame)
-                st.write(f"Prediction: {result}")
-                st.write(f"Probability: {probability}")
-
-                # Display a preview image of the selected frame
-                st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True)
+                st.video(video_path)
 
         if st.button("Detect Polyp"):
             if uploaded_file.type.startswith('image'):
@@ -80,10 +70,8 @@ def main():
                 st.write(f"Probability: {probability}")
             elif uploaded_file.type.startswith('video'):
                 st.write("Detecting polyp in the selected frame...")
-                result, probability = process_image(selected_frame)
-                st.write(f"Prediction: {result}")
-                st.write(f"Probability: {probability}")
-                
+                st.warning("Polyp detection for videos is not implemented yet.")
+
     elif page == "Info Page":
         show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
 
