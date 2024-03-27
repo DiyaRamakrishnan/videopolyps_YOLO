@@ -129,7 +129,7 @@ def main():
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
                 result, probability = process_image(img)
                 # Display the original image
-                st.image(img, caption='Original Image', use_column_width=True, output_format='JPEG')
+                st.image(img, caption='Original Image', width=500, output_format='JPEG')
                 st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
             elif uploaded_file.type.startswith('video'):
