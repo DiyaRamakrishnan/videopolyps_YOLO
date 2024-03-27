@@ -21,7 +21,8 @@ def process_image(img):
     input_data = np.array([img], dtype=np.float32) / 255.0
     prediction = model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
-    return result, prediction[0][0]
+    grad_cam_result = get_grad_cam(grad_cam_model, img, class_index=1, img_length=img_length, img_width=img_width)
+    return result, prediction[0][0], grad_cam_result
 
 def process_video(video_path):
     video = cv2.VideoCapture(video_path)
@@ -53,13 +54,14 @@ def main():
             if uploaded_file.type.startswith('image'):
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                result, probability = process_image(img)
+                result, probability, grad_cam_result = process_image(img)
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
-                
-                # Display Grad-CAM image
-                grad_cam_img = get_grad_cam(grad_cam_model, 1, img, img_length, img_width)  # Assuming class index 1
-                st.image(grad_cam_img, caption='Grad-CAM', channels='RGB', use_column_width=True)
+                st.write(f"Model Output: {prediction[0][0]}")
+                if grad_cam_result is not None:
+                    st.image(grad_cam_result, caption='Grad-CAM Result', width=500, output_format='JPEG')
+                else:
+                    st.write("Grad-CAM image is None. Check the image generation process.")
                 
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
