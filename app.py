@@ -136,7 +136,9 @@ def main():
                     img = cv2.imdecode(img, cv2.IMREAD_COLOR)
                     result, probability = process_image(img)
                     # Display the original image
-                    st.image(img, caption='Original Image', use_column_width=True, output_format='JPEG')
+                    st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
+                    st.image(img, caption='Original Image', width=500, output_format='JPEG')
                 elif uploaded_file.type.startswith('video'):
                     video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                     with open(video_path, 'wb') as f:
@@ -146,9 +148,9 @@ def main():
                     selected_frame = frames[selected_frame_index]
                     result, probability = process_image(selected_frame)
                     # Display a preview image of the selected frame
+                    st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
                     st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True, output_format='JPEG')
-                st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
 
     elif page == "Info Page":
         show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
