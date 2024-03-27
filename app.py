@@ -1,4 +1,3 @@
-
 import os
 import cv2
 import numpy as np
@@ -61,8 +60,16 @@ def generate_css(primary_color, secondary_background_color):
         .button:hover {{
             background-color: #4786a5; /* Darken the background color on hover */
         }}
-        .grad-cam {{
-            max-width: 50px; /* Set maximum width for grad cam image */
+        .prediction {{
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }}
+        .probability {{
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }}
+        .output-image {{
+            max-width: 400px; /* Set maximum width for output image */
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }}
@@ -112,8 +119,9 @@ def main():
 
         # Input side
         st.markdown('<div class="input-side">', unsafe_allow_html=True)
+        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</
         st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)  # Mellow blue color
-        uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4"])
+        uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "mov"])
         st.markdown('</div>', unsafe_allow_html=True)
 
         # Output side
@@ -129,7 +137,7 @@ def main():
                     img = cv2.imdecode(img, cv2.IMREAD_COLOR)
                     result, probability = process_image(img)
                     # Display the original image
-                    st.image(img, caption='Original Image', use_column_width=True)
+                    st.image(img, caption='Original Image', use_column_width=True, output_format='JPEG')
                 elif uploaded_file.type.startswith('video'):
                     video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                     with open(video_path, 'wb') as f:
@@ -139,9 +147,9 @@ def main():
                     selected_frame = frames[selected_frame_index]
                     result, probability = process_image(selected_frame)
                     # Display a preview image of the selected frame
-                    st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True)
-                st.write(f"Prediction: {result}")
-                st.write(f"Probability: {probability}")
+                    st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True, output_format='JPEG')
+                st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
 
     elif page == "Info Page":
         show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
