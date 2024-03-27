@@ -17,9 +17,7 @@ img_width = 50
 def process_image(img):
     img = cv2.resize(img, (img_length, img_width))
     input_data = np.array([img], dtype=np.float32) / 255.0
-    prediction = model.predict(input_data)
-    result = "True" if prediction[0][0] > 0.5 else "False"
-    return result, prediction[0][0], img  # Return the processed image
+    return input_data
 
 def process_video(video_path):
     video = cv2.VideoCapture(video_path)
@@ -51,11 +49,8 @@ def main():
             if uploaded_file.type.startswith('image'):
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                result, probability, processed_img = process_image(img)
-                st.write(f"Prediction: {result}")
-                st.write(f"Probability: {probability}")
-                st.image(processed_img, caption='Processed Image', use_column_width=True)
-                
+                st.image(img, caption='Uploaded Image', use_column_width=True)
+
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                 with open(video_path, 'wb') as f:
@@ -63,12 +58,17 @@ def main():
                 frames = process_video(video_path)
                 selected_frame_index = st.select_slider('Select a frame for processing', range(len(frames)))
                 selected_frame = frames[selected_frame_index]
-                result, probability, _ = process_image(selected_frame)
-                st.write(f"Prediction: {result}")
-                st.write(f"Probability: {probability}")
-
-                # Display a preview image of the selected frame
                 st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True)
+
+        if st.button('Detect Polyp'):
+            if uploaded_file is not None:
+                img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+                img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+                input_data = process_image(img)
+                prediction = model.predict(input_data)
+                result = "True" if prediction[0][0] > 0.5 else "False"
+                st.write(f"Prediction: {result}")
+                st.write(f"Probability: {prediction[0][0]}")
 
     elif page == "Info Page":
         show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
