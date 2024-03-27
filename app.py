@@ -42,7 +42,7 @@ def main():
         st.write("""
         This website utilizes a Machine Learning Model to detect polyps in the colon.
         Polyps are clumps of cells that form on the lining of the colon.
-        Polyps have been linked to high severity in patients who have an Inflammatory Bowl Disease (IBS).
+        Polyps have been linked to high severity in patients who have an Inflammatory Bowel Disease (IBS).
         This website can help doctors to ensure that they identify all polyps, as some can be discrete.
         Please remember that the model is not perfect, so use it as a second method.
         """)
@@ -56,6 +56,11 @@ def main():
                 result, probability = process_image(img)
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
+                
+                # Display Grad-CAM image
+                grad_cam_img = get_grad_cam(grad_cam_model, img)
+                st.image(grad_cam_img, caption='Grad-CAM', channels='RGB', use_column_width=True)
+                
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                 with open(video_path, 'wb') as f:
