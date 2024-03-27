@@ -70,7 +70,7 @@ def main():
                 frames = process_video(video_path)
                 selected_frame_index = st.select_slider('Select a frame for processing', range(len(frames)))
                 selected_frame = frames[selected_frame_index]
-                result, probability = process_image(selected_frame)
+                result, probability, _ = process_image(selected_frame)
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
 
@@ -132,4 +132,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
