@@ -21,7 +21,7 @@ def process_image(img):
     input_data = np.array([img], dtype=np.float32) / 255.0
     prediction = model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
-    grad_cam_result = get_grad_cam(grad_cam_model, img, class_index=1, img_length=img_length, img_width=img_width)
+    grad_cam_result = get_grad_cam(grad_cam_model, 1, img, img_length, img_width)  # Assuming class index 1
     return result, prediction[0][0], grad_cam_result
 
 def process_video(video_path):
@@ -57,7 +57,7 @@ def main():
                 result, probability, grad_cam_result = process_image(img)
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
-                st.write(f"Model Output: {prediction[0][0]}")
+                st.write(f"Model Output: {probability}")
                 if grad_cam_result is not None:
                     st.image(grad_cam_result, caption='Grad-CAM Result', width=500, output_format='JPEG')
                 else:
