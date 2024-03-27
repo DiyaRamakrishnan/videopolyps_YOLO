@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
+from info_page import show_info_page 
 
 # Load the model
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -130,9 +131,9 @@ def main():
                 if st.button('Detect Polyps'):  # Move the button outside of the condition
                     result, probability = process_image(img)
                     # Display the original image
-                    st.image(img, caption='Original Image', width=500, output_format='JPEG')
                     st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
-                    st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="probability">Model Output: {probability}</p>', unsafe_allow_html=True)
+                    st.image(img, caption='Original Image', width=500, output_format='JPEG')
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                 with open(video_path, 'wb') as f:
