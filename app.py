@@ -127,11 +127,12 @@ def main():
             if uploaded_file.type.startswith('image'):
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                result, probability = process_image(img)
-                # Display the original image
-                st.image(img, caption='Original Image', width=500, output_format='JPEG')
-                st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
+                if st.button('Detect Polyps'):  # Move the button outside of the condition
+                    result, probability = process_image(img)
+                    # Display the original image
+                    st.image(img, caption='Original Image', width=500, output_format='JPEG')
+                    st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
+                    st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                 with open(video_path, 'wb') as f:
@@ -144,7 +145,7 @@ def main():
                 result, probability = process_image(selected_frame)
                 st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
-
+                
     elif page == "Info Page":
         show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
 
