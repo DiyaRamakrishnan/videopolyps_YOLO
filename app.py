@@ -119,7 +119,6 @@ def main():
 
         # Input side
         st.markdown('<div class="input-side">', unsafe_allow_html=True)
-        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</
         st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)  # Mellow blue color
         uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "mov"])
         st.markdown('</div>', unsafe_allow_html=True)
