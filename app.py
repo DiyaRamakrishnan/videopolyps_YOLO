@@ -21,7 +21,7 @@ def process_image(img):
     input_data = np.array([img], dtype=np.float32) / 255.0
     prediction = model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
-    grad_cam_result = get_grad_cam(grad_cam_model, 1, img, img_length, img_width)  # Assuming class index 1
+    grad_cam_result = get_grad_cam(grad_cam_model, 1, input_data, img_length, img_width)  # Assuming class index 1
     return result, prediction[0][0], grad_cam_result
 
 def process_video(video_path):
@@ -132,3 +132,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+``
