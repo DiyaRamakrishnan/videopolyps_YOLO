@@ -47,7 +47,7 @@ def main():
         Please remember that the model is not perfect, so use it as a second method.
         """)
 
-        uploaded_file = st.file_uploader("Upload Image or Video", type=["jpg", "jpeg", "png", "mp4"])
+        uploaded_file = st.file_uploader("Upload Image or Video", type=["jpg", "jpeg", "png", "mp4", "mov"])
 
         if uploaded_file:
             if uploaded_file.type.startswith('image'):
@@ -57,7 +57,7 @@ def main():
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
             elif uploaded_file.type.startswith('video'):
-                video_path = os.path.join(script_dir, 'temp_video.mp4')
+                video_path = os.path.join(script_dir, 'temp_video.mov')  # Save .mov file as .mov
                 with open(video_path, 'wb') as f:
                     f.write(uploaded_file.read())
                 frames = process_video(video_path)
