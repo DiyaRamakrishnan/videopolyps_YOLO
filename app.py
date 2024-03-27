@@ -70,6 +70,20 @@ def main():
                 # Display a preview image of the selected frame
                 st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', use_column_width=True)
 
+        if st.button("Detect Polyp"):
+            if uploaded_file.type.startswith('image'):
+                st.write("Detecting polyp in the uploaded image...")
+                img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+                img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+                result, probability = process_image(img)
+                st.write(f"Prediction: {result}")
+                st.write(f"Probability: {probability}")
+            elif uploaded_file.type.startswith('video'):
+                st.write("Detecting polyp in the selected frame...")
+                result, probability = process_image(selected_frame)
+                st.write(f"Prediction: {result}")
+                st.write(f"Probability: {probability}")
+                
     elif page == "Info Page":
         show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
 
