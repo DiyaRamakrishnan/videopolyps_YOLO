@@ -3,14 +3,12 @@ import cv2
 import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
-from grad_cam import GradCAMModel, get_grad_cam
 from info_page import show_info_page 
 
 # Load the model
 script_dir = os.path.dirname(os.path.abspath(__file__))
 model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
 model = load_model(model_file_path)
-grad_cam_model = GradCAMModel(model, layer_name="conv2d_173")
 
 # Define image dimensions
 img_length = 50
@@ -21,8 +19,7 @@ def process_image(img):
     input_data = np.array([img], dtype=np.float32) / 255.0
     prediction = model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
-    grad_cam_result = get_grad_cam(grad_cam_model, 1, input_data, img_length, img_width)  # Assuming class index 1
-    return result, prediction[0][0], grad_cam_result
+    return result, prediction[0][0], img  # Return the processed image
 
 def process_video(video_path):
     video = cv2.VideoCapture(video_path)
@@ -54,14 +51,10 @@ def main():
             if uploaded_file.type.startswith('image'):
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                result, probability, grad_cam_result = process_image(img)
+                result, probability, processed_img = process_image(img)
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
-                st.write(f"Model Output: {probability}")
-                if grad_cam_result is not None:
-                    st.image(grad_cam_result, caption='Grad-CAM Result', width=500, output_format='JPEG')
-                else:
-                    st.write("Grad-CAM image is None. Check the image generation process.")
+                st.image(processed_img, caption='Processed Image', use_column_width=True)
                 
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
