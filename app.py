@@ -58,7 +58,7 @@ def main():
                 st.write(f"Probability: {probability}")
                 
                 # Display Grad-CAM image
-                grad_cam_img = get_grad_cam(grad_cam_model, img)
+                grad_cam_img = get_grad_cam(grad_cam_model, 1, img, img_length, img_width)  # Assuming class index 1
                 st.image(grad_cam_img, caption='Grad-CAM', channels='RGB', use_column_width=True)
                 
             elif uploaded_file.type.startswith('video'):
