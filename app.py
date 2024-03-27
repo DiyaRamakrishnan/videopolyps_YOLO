@@ -67,15 +67,15 @@ def main():
                 st.write(f"Prediction: {result}")
                 st.write(f"Probability: {probability}")
 
-elif page == "Info Page":
+    elif page == "Info Page":
        show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
 
-elif page == "QR Code":
+    elif page == "QR Code":
      st.title("QR Code")
      qr_image_path = "polypdetect_qr_code.png"
      st.image(qr_image_path, caption="Please use the QR code to send this app to people you know!", width = 500)
 
-elif page == "Comments":
+    elif page == "Comments":
     st.title('Comments')
     st.write("""
     Leave your comments and feedback below:
