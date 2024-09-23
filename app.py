@@ -7,10 +7,14 @@ from info_page import show_info_page
 import torch
 import sys
 import logging
+import subprocess
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Install dill package
+subprocess.check_call([sys.executable, "-m", "pip", "install", "dill"])
 
 # Diagnostic information
 st.write("Python version:", sys.version)
