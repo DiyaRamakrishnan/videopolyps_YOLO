@@ -45,7 +45,6 @@ except Exception as e:
     st.info("Please check if the 'model_1.h5' file is in the correct location.")
     logger.exception("Error loading classification model:")
 
-# Load YOLOv5 model
 yolo_path = os.path.join(script_dir, 'models', 'best.pt')
 st.write("Looking for YOLO model at:", yolo_path)
 
@@ -68,7 +67,9 @@ try:
         from yolov5.utils.general import non_max_suppression
         
         # Load YOLOv5 model
-        yolo_model = attempt_load(yolo_path, map_location='cpu')
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        yolo_model = attempt_load(yolo_path)
+        yolo_model = yolo_model.to(device)
         st.success("YOLO model loaded successfully!")
         logger.info("YOLO model loaded successfully")
 except Exception as e:
