@@ -4,9 +4,9 @@ import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
 from info_page import show_info_page 
-import torch
 import sys
 import logging
+import torch
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -51,7 +51,13 @@ try:
         logger.info(f"CUDA available: {torch.cuda.is_available()}")
         if torch.cuda.is_available():
             logger.info(f"CUDA version: {torch.version.cuda}")
-        yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_path, force_reload=True)
+        
+        # Load YOLOv5 directly without using torch.hub
+        sys.path.append(os.path.join(script_dir, 'yolov5'))  # Add YOLOv5 directory to path
+        from models.experimental import attempt_load
+        from utils.general import non_max_suppression
+        
+        yolo_model = attempt_load(yolo_path, map_location='cpu')
         st.success("YOLO model loaded successfully!")
         logger.info("YOLO model loaded successfully")
 except Exception as e:
@@ -139,11 +145,23 @@ def process_image(img):
         # Convert BGR to RGB
         rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
+        # Prepare image for YOLO
+        img_for_yolo = torch.from_numpy(rgb_img).to('cpu')
+        img_for_yolo = img_for_yolo.permute(2, 0, 1).float().div(255.0).unsqueeze(0)
+        
         # Perform YOLO detection
-        results = yolo_model(rgb_img)
+        with torch.no_grad():
+            detections = yolo_model(img_for_yolo)[0]
+        
+        # Non-maximum suppression
+        detections = non_max_suppression(detections, 0.25, 0.45)[0]
         
         # Draw bounding boxes
-        img_with_boxes = results.render()[0]
+        img_with_boxes = rgb_img.copy()
+        if detections is not None and len(detections):
+            detections[:, :4] = detections[:, :4].round()
+            for *xyxy, conf, cls in detections:
+                cv2.rectangle(img_with_boxes, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (255, 0, 0), 2)
         
         return result, prediction[0][0], img_with_boxes
     
