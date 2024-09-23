@@ -21,30 +21,10 @@ from info_page import show_info_page
 import logging
 import torch
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Diagnostic information
-st.write("Python version:", sys.version)
-st.write("OpenCV version:", cv2.__version__)
-st.write("NumPy version:", np.__version__)
-st.write("PyTorch version:", torch.__version__)
-st.write("Script directory:", script_dir)
-st.write("YOLOv5 directory:", yolov5_dir)
-
-# Load the classification model
-model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
-st.write("Looking for classification model at:", model_file_path)
-
-try:
-    model = load_model(model_file_path)
-    st.success("Classification model loaded successfully!")
-except Exception as e:
-    st.error(f"Error loading classification model: {str(e)}")
-    st.info("Please check if the 'model_1.h5' file is in the correct location.")
-    logger.exception("Error loading classification model:")
-
+# Load YOLOv5 model
 yolo_path = os.path.join(script_dir, 'models', 'best.pt')
 st.write("Looking for YOLO model at:", yolo_path)
 
@@ -62,18 +42,33 @@ try:
         if torch.cuda.is_available():
             logger.info(f"CUDA version: {torch.version.cuda}")
         
-        # Import YOLO functions
-        from yolov5.models.experimental import attempt_load
-        from yolov5.utils.general import non_max_suppression
-        
-        # Modify the attempt_load function to avoid using Hugging Face hub
-        def custom_attempt_load(weights, device='cpu'):
-            model = torch.load(weights, map_location=device)['model'].float().fuse().eval()
-            return model
-        
+        # Custom function to load YOLO model
+        def custom_load_model(weights, device='cpu'):
+            try:
+                # Try loading as a state dict first
+                model = torch.load(weights, map_location=device)
+                if isinstance(model, dict):
+                    if 'model' in model:
+                        model = model['model']
+                    elif 'state_dict' in model:
+                        model = model['state_dict']
+                return model
+            except Exception as e:
+                logger.error(f"Error loading model as state dict: {str(e)}")
+                
+                # If that fails, try loading as a full model
+                try:
+                    from yolov5.models.experimental import attempt_load
+                    model = attempt_load(weights, device=device)
+                    return model
+                except Exception as e:
+                    logger.error(f"Error loading model using attempt_load: {str(e)}")
+                    raise
+
         # Load YOLOv5 model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        yolo_model = custom_attempt_load(yolo_path, device)
+        yolo_model = custom_load_model(yolo_path, device)
+        yolo_model.eval()  # Set the model to evaluation mode
         st.success("YOLO model loaded successfully!")
         logger.info("YOLO model loaded successfully")
 except Exception as e:
