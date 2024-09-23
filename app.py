@@ -22,6 +22,11 @@ st.write("PyTorch version:", torch.__version__)
 script_dir = os.path.dirname(os.path.abspath(__file__))
 st.write("Script directory:", script_dir)
 
+# Add YOLOv5 directory to Python path
+yolov5_dir = os.path.join(script_dir, 'yolov5')
+sys.path.append(yolov5_dir)
+logger.info(f"Added YOLOv5 directory to Python path: {yolov5_dir}")
+
 # Load the classification model
 model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
 st.write("Looking for classification model at:", model_file_path)
@@ -52,11 +57,11 @@ try:
         if torch.cuda.is_available():
             logger.info(f"CUDA version: {torch.version.cuda}")
         
-        # Load YOLOv5 directly without using torch.hub
-        sys.path.append(os.path.join(script_dir, 'yolov5'))  # Add YOLOv5 directory to path
+        # Import YOLO functions
         from models.experimental import attempt_load
         from utils.general import non_max_suppression
         
+        # Load YOLOv5 model
         yolo_model = attempt_load(yolo_path, map_location='cpu')
         st.success("YOLO model loaded successfully!")
         logger.info("YOLO model loaded successfully")
