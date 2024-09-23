@@ -5,9 +5,10 @@ import streamlit as st
 from tensorflow.keras.models import load_model
 from info_page import show_info_page 
 import torch
+import sys
 
 # Diagnostic information
-st.write("Python version:", os.sys.version)
+st.write("Python version:", sys.version)
 st.write("OpenCV version:", cv2.__version__)
 st.write("NumPy version:", np.__version__)
 st.write("PyTorch version:", torch.__version__)
@@ -31,11 +32,23 @@ except Exception as e:
 yolo_path = os.path.join(script_dir, 'models', 'best.pt')
 st.write("Looking for YOLO model at:", yolo_path)
 
+yolo_model = None
 try:
     if not os.path.exists(yolo_path):
         st.error(f"YOLO model file not found at: {yolo_path}")
         st.info("Please make sure you have placed the 'best.pt' file in the 'models' directory.")
     else:
+        # Try to install dill if it's missing
+        try:
+            import dill
+        except ImportError:
+            st.warning("The 'dill' module is missing. Attempting to install it...")
+            import subprocess
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "dill"])
+            st.success("'dill' module installed successfully. Please restart the app.")
+            st.stop()
+
+        # Now try to load the YOLO model
         yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_path, force_reload=True)
         st.success("YOLO model loaded successfully!")
 except Exception as e:
@@ -117,8 +130,8 @@ def process_image(img):
     prediction = model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
     
-    # If classified as having a polyp, perform YOLO detection
-    if result == "True":
+    # If classified as having a polyp and YOLO model is loaded, perform YOLO detection
+    if result == "True" and yolo_model is not None:
         # Convert BGR to RGB
         rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
@@ -222,8 +235,11 @@ def main():
         # Display comments
         st.write("### Comments:")
         comments = []
-        with open("comments.txt", "r") as file:
-            comments = file.readlines()
+        try:
+            with open("comments.txt", "r") as file:
+                comments = file.readlines()
+        except FileNotFoundError:
+            st.info("No comments yet. Be the first to comment!")
         if comments:
             for comment_text in comments:
                 # Split comment into name and message parts
