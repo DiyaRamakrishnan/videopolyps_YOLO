@@ -66,10 +66,14 @@ try:
         from yolov5.models.experimental import attempt_load
         from yolov5.utils.general import non_max_suppression
         
+        # Modify the attempt_load function to avoid using Hugging Face hub
+        def custom_attempt_load(weights, device='cpu'):
+            model = torch.load(weights, map_location=device)['model'].float().fuse().eval()
+            return model
+        
         # Load YOLOv5 model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        yolo_model = attempt_load(yolo_path)
-        yolo_model = yolo_model.to(device)
+        yolo_model = custom_attempt_load(yolo_path, device)
         st.success("YOLO model loaded successfully!")
         logger.info("YOLO model loaded successfully")
 except Exception as e:
