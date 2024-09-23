@@ -6,7 +6,11 @@ from tensorflow.keras.models import load_model
 from info_page import show_info_page 
 import torch
 import sys
-import subprocess
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Diagnostic information
 st.write("Python version:", sys.version)
@@ -28,6 +32,7 @@ try:
 except Exception as e:
     st.error(f"Error loading classification model: {str(e)}")
     st.info("Please check if the 'model_1.h5' file is in the correct location.")
+    logger.exception("Error loading classification model:")
 
 # Load YOLOv5 model
 yolo_path = os.path.join(script_dir, 'models', 'best.pt')
@@ -39,36 +44,20 @@ try:
         st.error(f"YOLO model file not found at: {yolo_path}")
         st.info("Please make sure you have placed the 'best.pt' file in the 'models' directory.")
     else:
-        # Try to import dill
-        try:
-            import dill
-        except ImportError:
-            st.warning("The 'dill' module is missing. Attempting to install it...")
-            try:
-                # First, try installing with --user flag
-                subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", "dill"])
-                st.success("'dill' module installed successfully with --user flag. Please restart the app.")
-                st.stop()
-            except subprocess.CalledProcessError:
-                st.error("Failed to install 'dill' with --user flag. Trying without --user flag...")
-                try:
-                    subprocess.check_call([sys.executable, "-m", "pip", "install", "dill"])
-                    st.success("'dill' module installed successfully. Please restart the app.")
-                    st.stop()
-                except subprocess.CalledProcessError as e:
-                    st.error(f"Failed to install 'dill'. Error: {str(e)}")
-                    st.info("Please try installing 'dill' manually or contact your system administrator.")
-                    st.stop()
-
-        # Now try to load the YOLO model
+        # Try to load the YOLO model
         st.info("Attempting to load YOLO model...")
+        logger.info(f"Attempting to load YOLO model from {yolo_path}")
+        logger.info(f"PyTorch version: {torch.__version__}")
+        logger.info(f"CUDA available: {torch.cuda.is_available()}")
+        if torch.cuda.is_available():
+            logger.info(f"CUDA version: {torch.version.cuda}")
         yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_path, force_reload=True)
         st.success("YOLO model loaded successfully!")
+        logger.info("YOLO model loaded successfully")
 except Exception as e:
     st.error(f"Error loading YOLO model: {str(e)}")
     st.info("Please check your YOLOv5 installation and model file.")
-    import traceback
-    st.code(traceback.format_exc())
+    logger.exception("Error loading YOLO model:")
 
 # Define image dimensions
 img_length = 50
