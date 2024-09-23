@@ -1,4 +1,4 @@
-import os
+\import os
 import cv2
 import numpy as np
 import streamlit as st
@@ -6,6 +6,7 @@ from tensorflow.keras.models import load_model
 from info_page import show_info_page 
 import torch
 import sys
+import subprocess
 
 # Diagnostic information
 st.write("Python version:", sys.version)
@@ -38,22 +39,36 @@ try:
         st.error(f"YOLO model file not found at: {yolo_path}")
         st.info("Please make sure you have placed the 'best.pt' file in the 'models' directory.")
     else:
-        # Try to install dill if it's missing
+        # Try to import dill
         try:
             import dill
         except ImportError:
             st.warning("The 'dill' module is missing. Attempting to install it...")
-            import subprocess
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "dill"])
-            st.success("'dill' module installed successfully. Please restart the app.")
-            st.stop()
+            try:
+                # First, try installing with --user flag
+                subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", "dill"])
+                st.success("'dill' module installed successfully with --user flag. Please restart the app.")
+                st.stop()
+            except subprocess.CalledProcessError:
+                st.error("Failed to install 'dill' with --user flag. Trying without --user flag...")
+                try:
+                    subprocess.check_call([sys.executable, "-m", "pip", "install", "dill"])
+                    st.success("'dill' module installed successfully. Please restart the app.")
+                    st.stop()
+                except subprocess.CalledProcessError as e:
+                    st.error(f"Failed to install 'dill'. Error: {str(e)}")
+                    st.info("Please try installing 'dill' manually or contact your system administrator.")
+                    st.stop()
 
         # Now try to load the YOLO model
+        st.info("Attempting to load YOLO model...")
         yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_path, force_reload=True)
         st.success("YOLO model loaded successfully!")
 except Exception as e:
     st.error(f"Error loading YOLO model: {str(e)}")
     st.info("Please check your YOLOv5 installation and model file.")
+    import traceback
+    st.code(traceback.format_exc())
 
 # Define image dimensions
 img_length = 50
