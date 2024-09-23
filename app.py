@@ -6,13 +6,41 @@ from tensorflow.keras.models import load_model
 from info_page import show_info_page 
 import torch
 
-# Load the models
+# Diagnostic information
+st.write("Python version:", os.sys.version)
+st.write("OpenCV version:", cv2.__version__)
+st.write("NumPy version:", np.__version__)
+st.write("PyTorch version:", torch.__version__)
+
+# Get the current script directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
+st.write("Script directory:", script_dir)
+
+# Load the classification model
 model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
-model = load_model(model_file_path)
+st.write("Looking for classification model at:", model_file_path)
+
+try:
+    model = load_model(model_file_path)
+    st.success("Classification model loaded successfully!")
+except Exception as e:
+    st.error(f"Error loading classification model: {str(e)}")
+    st.info("Please check if the 'model_1.h5' file is in the correct location.")
 
 # Load YOLOv5 model
-yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=os.path.join(script_dir, 'models', 'best.pt'))
+yolo_path = os.path.join(script_dir, 'models', 'best.pt')
+st.write("Looking for YOLO model at:", yolo_path)
+
+try:
+    if not os.path.exists(yolo_path):
+        st.error(f"YOLO model file not found at: {yolo_path}")
+        st.info("Please make sure you have placed the 'best.pt' file in the 'models' directory.")
+    else:
+        yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_path, force_reload=True)
+        st.success("YOLO model loaded successfully!")
+except Exception as e:
+    st.error(f"Error loading YOLO model: {str(e)}")
+    st.info("Please check your YOLOv5 installation and model file.")
 
 # Define image dimensions
 img_length = 50
