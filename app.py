@@ -1,10 +1,23 @@
 import os
+import sys
+
+# Get the current script directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Add YOLOv5 directory to Python path
+yolov5_dir = os.path.join(script_dir, 'yolov5')
+sys.path.insert(0, yolov5_dir)
+
+# Debug information
+print("Script directory:", script_dir)
+print("YOLOv5 directory:", yolov5_dir)
+print("Python path:", sys.path)
+
 import cv2
 import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
 from info_page import show_info_page 
-import sys
 import logging
 import torch
 
@@ -17,15 +30,8 @@ st.write("Python version:", sys.version)
 st.write("OpenCV version:", cv2.__version__)
 st.write("NumPy version:", np.__version__)
 st.write("PyTorch version:", torch.__version__)
-
-# Get the current script directory
-script_dir = os.path.dirname(os.path.abspath(__file__))
 st.write("Script directory:", script_dir)
-
-# Add YOLOv5 directory to Python path
-yolov5_dir = os.path.join(script_dir, 'yolov5')
-sys.path.append(yolov5_dir)
-logger.info(f"Added YOLOv5 directory to Python path: {yolov5_dir}")
+st.write("YOLOv5 directory:", yolov5_dir)
 
 # Load the classification model
 model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
@@ -58,8 +64,8 @@ try:
             logger.info(f"CUDA version: {torch.version.cuda}")
         
         # Import YOLO functions
-        from models.experimental import attempt_load
-        from utils.general import non_max_suppression
+        from yolov5.models.experimental import attempt_load
+        from yolov5.utils.general import non_max_suppression
         
         # Load YOLOv5 model
         yolo_model = attempt_load(yolo_path, map_location='cpu')
