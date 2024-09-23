@@ -7,14 +7,10 @@ from info_page import show_info_page
 import torch
 import sys
 import logging
-import subprocess
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Install dill package
-subprocess.check_call([sys.executable, "-m", "pip", "install", "dill"])
 
 # Diagnostic information
 st.write("Python version:", sys.version)
@@ -60,7 +56,7 @@ try:
         logger.info("YOLO model loaded successfully")
 except Exception as e:
     st.error(f"Error loading YOLO model: {str(e)}")
-    st.info("Please check your YOLOv5 installation and model file.")
+    st.info("YOLO model could not be loaded. The app will continue with limited functionality.")
     logger.exception("Error loading YOLO model:")
 
 # Define image dimensions
