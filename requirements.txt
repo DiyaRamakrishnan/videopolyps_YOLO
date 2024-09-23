@@ -20,4 +20,3 @@ torch==2.1.0
 torchvision==0.16.0
 yolov5==7.0.13
 streamlit==1.29.0
-dill==0.3.8
