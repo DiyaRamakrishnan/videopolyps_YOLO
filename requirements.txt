@@ -10,7 +10,7 @@ Markdown==3.5.2
 MarkupSafe==2.1.4
 oauthlib==3.2.2
 tensorboard==2.15.1
-tensorboard-data-server==0.7.2
+tensorboard-data-server==0.7.0
 tensorflow==2.15.0.post1
 tensorflow-estimator==2.15.0
 tensorflow-io-gcs-filesystem==0.35.0
@@ -19,5 +19,5 @@ matplotlib==3.5.2
 torch==2.1.0
 torchvision==0.16.0
 streamlit==1.29.0
-ultralytics
+ultralytics==8.0.228
 dill
