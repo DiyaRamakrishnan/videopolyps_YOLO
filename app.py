@@ -15,6 +15,12 @@ cnn_model = load_model(cnn_model_file_path)
 yolo_model_file_path = os.path.join(script_dir, 'models', 'best.pt')
 try:
     yolo_model = YOLO(yolo_model_file_path)
+    # Try to fuse the model without the verbose parameter
+    try:
+        yolo_model.fuse()
+    except TypeError:
+        # If fuse() doesn't work, we'll continue without fusing
+        st.warning("Unable to fuse YOLO model. Continuing with unfused model.")
 except Exception as e:
     st.error(f"Error loading YOLO model: {str(e)}")
     st.error("Please make sure the 'best.pt' file is in the 'models' directory and all required packages are installed.")
@@ -96,8 +102,12 @@ def process_image_cnn(img):
     return result, prediction[0][0]
 
 def process_image_yolo(img):
-    results = yolo_model(img)
-    return results
+    try:
+        results = yolo_model(img)
+        return results
+    except Exception as e:
+        st.error(f"Error processing image with YOLO: {str(e)}")
+        return None
 
 def process_video(video_path, frame_number):
     video = cv2.VideoCapture(video_path)
