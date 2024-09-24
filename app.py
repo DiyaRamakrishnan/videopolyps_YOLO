@@ -4,16 +4,7 @@ import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
 from info_page import show_info_page 
-
-# Check for required packages
-try:
-    import torch
-    import ultralytics
-except ImportError:
-    st.error("Required packages are missing. Please install them using the following commands:")
-    st.code("pip install torch torchvision torchaudio")
-    st.code("pip install ultralytics")
-    st.stop()
+from ultralytics import YOLO
 
 # Load the CNN model
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -23,7 +14,7 @@ cnn_model = load_model(cnn_model_file_path)
 # Load the YOLO model
 yolo_model_file_path = os.path.join(script_dir, 'models', 'best.pt')
 try:
-    yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_model_file_path)
+    yolo_model = YOLO(yolo_model_file_path)
 except Exception as e:
     st.error(f"Error loading YOLO model: {str(e)}")
     st.error("Please make sure the 'best.pt' file is in the 'models' directory and all required packages are installed.")
@@ -149,8 +140,9 @@ def main():
             st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
             
             if uploaded_file.type.startswith('image'):
-                img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-                img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+                img = cv2.imdecode(np.frombuffer(uploaded_file.read(), np.uint8), 1)
+                img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                
                 if st.button('Detect Polyps'):
                     # CNN prediction
                     cnn_result, cnn_probability = process_image_cnn(img)
@@ -159,22 +151,24 @@ def main():
                     
                     # If CNN predicts a polyp, perform YOLO detection
                     if cnn_result == "True":
-                        yolo_results = process_image_yolo(img)
+                        yolo_results = process_image_yolo(img_rgb)
                         
                         # Display YOLO results
-                        st.image(yolo_results.render()[0], caption='YOLO Detection', use_column_width=True)
+                        res_plotted = yolo_results[0].plot()
+                        st.image(res_plotted, caption='YOLO Detection', use_column_width=True)
                         
                         # Display detection information
-                        for detection in yolo_results.xyxy[0]:
-                            confidence = detection[4].item()
-                            class_id = int(detection[5].item())
-                            class_name = yolo_model.names[class_id]
-                            st.write(f"Detected: {class_name}, Confidence: {confidence:.4f}")
+                        for r in yolo_results:
+                            for box in r.boxes:
+                                confidence = box.conf.item()
+                                class_id = int(box.cls.item())
+                                class_name = yolo_model.names[class_id]
+                                st.write(f"Detected: {class_name}, Confidence: {confidence:.4f}")
                     else:
                         st.write("No polyp detected by CNN model.")
                     
                     # Display the original image
-                    st.image(img, caption='Original Image', use_column_width=True)
+                    st.image(img_rgb, caption='Original Image', use_column_width=True)
             
             elif uploaded_file.type.startswith('video'):
                 video_path = os.path.join(script_dir, 'temp_video.mp4')
@@ -199,14 +193,16 @@ def main():
                         yolo_results = process_image_yolo(selected_frame)
                         
                         # Display YOLO results
-                        st.image(yolo_results.render()[0], caption='YOLO Detection', use_column_width=True)
+                        res_plotted = yolo_results[0].plot()
+                        st.image(res_plotted, caption='YOLO Detection', use_column_width=True)
                         
                         # Display detection information
-                        for detection in yolo_results.xyxy[0]:
-                            confidence = detection[4].item()
-                            class_id = int(detection[5].item())
-                            class_name = yolo_model.names[class_id]
-                            st.write(f"Detected: {class_name}, Confidence: {confidence:.4f}")
+                        for r in yolo_results:
+                            for box in r.boxes:
+                                confidence = box.conf.item()
+                                class_id = int(box.cls.item())
+                                class_name = yolo_model.names[class_id]
+                                st.write(f"Detected: {class_name}, Confidence: {confidence:.4f}")
                     else:
                         st.write("No polyp detected by CNN model.")
                     
