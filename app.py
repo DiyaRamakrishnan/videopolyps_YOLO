@@ -4,7 +4,16 @@ import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
 from info_page import show_info_page 
-import torch
+
+# Check for required packages
+try:
+    import torch
+    import ultralytics
+except ImportError:
+    st.error("Required packages are missing. Please install them using the following commands:")
+    st.code("pip install torch torchvision torchaudio")
+    st.code("pip install ultralytics")
+    st.stop()
 
 # Load the CNN model
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -13,7 +22,12 @@ cnn_model = load_model(cnn_model_file_path)
 
 # Load the YOLO model
 yolo_model_file_path = os.path.join(script_dir, 'models', 'best.pt')
-yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_model_file_path)
+try:
+    yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_model_file_path)
+except Exception as e:
+    st.error(f"Error loading YOLO model: {str(e)}")
+    st.error("Please make sure the 'best.pt' file is in the 'models' directory and all required packages are installed.")
+    st.stop()
 
 # Define image dimensions
 img_length = 50
