@@ -149,6 +149,7 @@ def main():
         if uploaded_file is not None:
             st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
             
+        if uploaded_file is not None:
             if uploaded_file.type.startswith('image'):
                 img = cv2.imdecode(np.frombuffer(uploaded_file.read(), np.uint8), 1)
                 img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -163,17 +164,23 @@ def main():
                     if cnn_result == "True":
                         yolo_results = process_image_yolo(img_rgb)
                         
-                        # Display YOLO results
-                        res_plotted = yolo_results[0].plot()
-                        st.image(res_plotted, caption='YOLO Detection', use_column_width=True)
-                        
-                        # Display detection information
-                        for r in yolo_results:
-                            for box in r.boxes:
-                                confidence = box.conf.item()
-                                class_id = int(box.cls.item())
-                                class_name = yolo_model.names[class_id]
-                                st.write(f"Detected: {class_name}, Confidence: {confidence:.4f}")
+                        if yolo_results is not None and len(yolo_results) > 0:
+                            # Display YOLO results
+                            res_plotted = yolo_results[0].plot()
+                            st.image(res_plotted, caption='YOLO Detection', use_column_width=True)
+                            
+                            # Display detection information
+                            for r in yolo_results:
+                                if hasattr(r, 'boxes') and len(r.boxes) > 0:
+                                    for box in r.boxes:
+                                        confidence = box.conf.item()
+                                        class_id = int(box.cls.item())
+                                        class_name = yolo_model.names[class_id]
+                                        st.write(f"Detected: {class_name}, Confidence: {confidence:.4f}")
+                                else:
+                                    st.write("No objects detected by YOLO model.")
+                        else:
+                            st.write("YOLO detection failed or found no objects. Please try again or contact support.")
                     else:
                         st.write("No polyp detected by CNN model.")
                     
