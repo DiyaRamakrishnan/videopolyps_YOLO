@@ -1,54 +1,14 @@
 import os
-import sys
 import cv2
 import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
 from info_page import show_info_page 
-import logging
-import torch
 
-# Get the current script directory
+# Load the model
 script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Add YOLOv5 directory to Python path
-yolov5_dir = os.path.join(script_dir, 'yolov5')
-sys.path.insert(0, yolov5_dir)
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Load CNN model
-cnn_model_path = os.path.join(script_dir, 'models', 'model_1.h5')
-cnn_model = load_model(cnn_model_path)
-
-# Load YOLOv5 model
-yolo_path = os.path.join(script_dir, 'models', 'best.pt')
-st.write("Looking for YOLO model at:", yolo_path)
-
-yolo_model = None
-try:
-    if not os.path.exists(yolo_path):
-        st.error(f"YOLO model file not found at: {yolo_path}")
-        st.info("Please make sure you have placed the 'best.pt' file in the 'models' directory.")
-    else:
-        st.info("Attempting to load YOLO model...")
-        logger.info(f"Attempting to load YOLO model from {yolo_path}")
-        logger.info(f"PyTorch version: {torch.__version__}")
-        logger.info(f"CUDA available: {torch.cuda.is_available()}")
-        if torch.cuda.is_available():
-            logger.info(f"CUDA version: {torch.version.cuda}")
-        
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_path, force_reload=True)
-        yolo_model.to(device)
-        yolo_model.eval()
-        st.success("YOLO model loaded successfully!")
-        logger.info("YOLO model loaded successfully")
-except Exception as e:
-    st.error(f"Error loading YOLO model: {str(e)}")
-    st.info("YOLO model could not be loaded. The app will continue with limited functionality.")
-    logger.exception("Error loading YOLO model:")
+model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
+model = load_model(model_file_path)
 
 # Define image dimensions
 img_length = 50
@@ -62,36 +22,36 @@ def generate_css(primary_color, secondary_background_color):
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #ffffff;
+            background-color: #ffffff; /* Set background color to white */
         }}
         .container {{
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            flex-direction: column; /* Change flex-direction to column */
+            align-items: center; /* Align items to center */
             height: 100vh;
-            justify-content: center;
+            justify-content: center; /* Vertically center content */
         }}
         .input-side, .output-side {{
-            width: 80%;
+            width: 80%; /* Adjust width to take up 80% of the container */
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+            margin-bottom: 20px; /* Add margin to separate input and output sides */
         }}
         .input-side {{
-            background-color: {secondary_background_color};
+            background-color: {secondary_background_color}; /* Use secondary background color */
         }}
         .output-side {{
             background-color: #fff;
         }}
         .title {{
             font-size: 2rem;
-            color: {primary_color};
-            margin-bottom: 10px;
+            color: {primary_color}; /* Use primary color for title */
+            margin-bottom: 10px; /* Reduce margin bottom for title */
         }}
         .button {{
-            background-color: {primary_color};
-            color: #ffffff;
+            background-color: {primary_color}; /* Use primary color for buttons */
+            color: #ffffff; /* Set text color to white */
             border: none;
             border-radius: 5px;
             padding: 10px 20px;
@@ -99,7 +59,7 @@ def generate_css(primary_color, secondary_background_color):
             transition: background-color 0.3s;
         }}
         .button:hover {{
-            background-color: #4786a5;
+            background-color: #4786a5; /* Darken the background color on hover */
         }}
         .prediction {{
             font-size: 1.5rem;
@@ -110,7 +70,7 @@ def generate_css(primary_color, secondary_background_color):
             margin-bottom: 20px;
         }}
         .output-image {{
-            max-width: 400px;
+            max-width: 400px; /* Set maximum width for output image */
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }}
@@ -119,26 +79,11 @@ def generate_css(primary_color, secondary_background_color):
     return css
 
 def process_image(img):
-    # Resize for the CNN classification model
-    resized_img = cv2.resize(img, (img_length, img_width))
-    input_data = np.array([resized_img], dtype=np.float32) / 255.0
-    prediction = cnn_model.predict(input_data)
+    img = cv2.resize(img, (img_length, img_width))
+    input_data = np.array([img], dtype=np.float32) / 255.0
+    prediction = model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
-    
-    # If classified as having a polyp and YOLO model is loaded, perform YOLO detection
-    if result == "True" and yolo_model is not None:
-        # Convert BGR to RGB
-        rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        
-        # Perform YOLO detection
-        results = yolo_model(rgb_img)
-        
-        # Draw bounding boxes
-        img_with_boxes = results.render()[0]
-        
-        return result, prediction[0][0], img_with_boxes
-    
-    return result, prediction[0][0], img
+    return result, prediction[0][0]
 
 def process_video(video_path, frame_number):
     video = cv2.VideoCapture(video_path)
@@ -171,37 +116,39 @@ def main():
 
         # Input side
         st.markdown('<div class="input-side">', unsafe_allow_html=True)
-        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)
+        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)  # Mellow blue color
         uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "mov"])
         st.markdown('</div>', unsafe_allow_html=True)
 
         # Output side
         st.markdown('<div class="output-side">', unsafe_allow_html=True)
         if uploaded_file is not None:
-            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)  # Mellow blue color
+            # Perform detection and display result
             if uploaded_file.type.startswith('image'):
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                if st.button('Detect Polyps'):
-                    result, probability, processed_img = process_image(img)
+                if st.button('Detect Polyps'):  # Move the button outside of the condition
+                    result, probability = process_image(img)
+                    # Display the original image
                     st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
                     st.markdown(f'<p class="probability">Model Output: {probability}</p>', unsafe_allow_html=True)
-                    st.image(processed_img, caption='Processed Image', width=500, channels="RGB")
+                    st.image(img, caption='Original Image', width=500, output_format='JPEG')
             elif uploaded_file.type.startswith('video'):
-                video_path = os.path.join(script_dir, 'temp_video.mp4')
+                video_path = os.path.join(script_dir, 'temp_video.mp4')  # Temporarily save video as .mp4
                 with open(video_path, 'wb') as f:
                     f.write(uploaded_file.read())
                 frame_number = st.number_input("Frame Number", value=0, step=1)
                 selected_frame = process_video(video_path, frame_number)
-                st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', width=500)
-                if st.button('Detect Polyps'):
-                    result, probability, processed_frame = process_image(selected_frame)
-                    st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
-                    st.markdown(f'<p class="probability">Model Output: {probability}</p>', unsafe_allow_html=True)
-                    st.image(processed_frame, caption='Processed Frame', width=500, channels="RGB")
+                st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', width=500, output_format='JPEG')
+                st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)  # Mellow blue color
+                # Perform detection and display result
+                result, probability = process_image(selected_frame)
+                st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
                 
     elif page == "Info Page":
-        show_info_page(primary_color, secondary_background_color)
+        show_info_page(primary_color, secondary_background_color)  # Call the show_info_page function with theme colors
 
     elif page == "QR Code":
         st.title("QR Code")
@@ -230,11 +177,8 @@ def main():
         # Display comments
         st.write("### Comments:")
         comments = []
-        try:
-            with open("comments.txt", "r") as file:
-                comments = file.readlines()
-        except FileNotFoundError:
-            st.info("No comments yet. Be the first to comment!")
+        with open("comments.txt", "r") as file:
+            comments = file.readlines()
         if comments:
             for comment_text in comments:
                 # Split comment into name and message parts
