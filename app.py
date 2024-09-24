@@ -26,10 +26,6 @@ except Exception as e:
     st.error("Please make sure the 'best.pt' file is in the 'models' directory and all required packages are installed.")
     st.stop()
 
-# Define image dimensions
-img_length = 50
-img_width = 50
-
 # Define CSS styles dynamically based on theme settings
 def generate_css(primary_color, secondary_background_color):
     css = f"""

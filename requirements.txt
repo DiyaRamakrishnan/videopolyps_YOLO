@@ -19,5 +19,5 @@ matplotlib==3.5.2
 torch==2.1.0
 torchvision==0.16.0
 streamlit==1.29.0
-ultralytics==8.0.228
+ultralytics
 dill
