@@ -4,27 +4,31 @@ import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
 from info_page import show_info_page 
-from ultralytics import YOLO
+
+# Defer YOLO import to avoid signal handling issues
+yolo_model = None
+
+def load_yolo_model():
+    global yolo_model
+    if yolo_model is None:
+        from ultralytics import YOLO
+        yolo_model_file_path = os.path.join(script_dir, 'models', 'best.pt')
+        try:
+            yolo_model = YOLO(yolo_model_file_path)
+        except Exception as e:
+            st.error(f"Error loading YOLO model: {str(e)}")
+            st.error("Please make sure the 'best.pt' file is in the 'models' directory and all required packages are installed.")
+            return None
+    return yolo_model
 
 # Load the CNN model
 script_dir = os.path.dirname(os.path.abspath(__file__))
 cnn_model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
 cnn_model = load_model(cnn_model_file_path)
 
-# Load the YOLO model
-yolo_model_file_path = os.path.join(script_dir, 'models', 'best.pt')
-try:
-    yolo_model = YOLO(yolo_model_file_path)
-    # Try to fuse the model without the verbose parameter
-    try:
-        yolo_model.fuse()
-    except TypeError:
-        # If fuse() doesn't work, we'll continue without fusing
-        st.warning("Unable to fuse YOLO model. Continuing with unfused model.")
-except Exception as e:
-    st.error(f"Error loading YOLO model: {str(e)}")
-    st.error("Please make sure the 'best.pt' file is in the 'models' directory and all required packages are installed.")
-    st.stop()
+# Define image dimensions
+img_length = 50
+img_width = 50
 
 # Define CSS styles dynamically based on theme settings
 def generate_css(primary_color, secondary_background_color):
@@ -98,8 +102,11 @@ def process_image_cnn(img):
     return result, prediction[0][0]
 
 def process_image_yolo(img):
+    model = load_yolo_model()
+    if model is None:
+        return None
     try:
-        results = yolo_model(img)
+        results = model(img)
         return results
     except Exception as e:
         st.error(f"Error processing image with YOLO: {str(e)}")
