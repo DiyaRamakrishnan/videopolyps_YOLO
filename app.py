@@ -1,18 +1,5 @@
 import os
 import sys
-
-# Get the current script directory
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Add YOLOv5 directory to Python path
-yolov5_dir = os.path.join(script_dir, 'yolov5')
-sys.path.insert(0, yolov5_dir)
-
-# Debug information
-print("Script directory:", script_dir)
-print("YOLOv5 directory:", yolov5_dir)
-print("Python path:", sys.path)
-
 import cv2
 import numpy as np
 import streamlit as st
@@ -21,8 +8,19 @@ from info_page import show_info_page
 import logging
 import torch
 
+# Get the current script directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Add YOLOv5 directory to Python path
+yolov5_dir = os.path.join(script_dir, 'yolov5')
+sys.path.insert(0, yolov5_dir)
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Load CNN model
+cnn_model_path = os.path.join(script_dir, 'models', 'model_1.h5')
+cnn_model = load_model(cnn_model_path)
 
 # Load YOLOv5 model
 yolo_path = os.path.join(script_dir, 'models', 'best.pt')
@@ -34,7 +32,6 @@ try:
         st.error(f"YOLO model file not found at: {yolo_path}")
         st.info("Please make sure you have placed the 'best.pt' file in the 'models' directory.")
     else:
-        # Try to load the YOLO model
         st.info("Attempting to load YOLO model...")
         logger.info(f"Attempting to load YOLO model from {yolo_path}")
         logger.info(f"PyTorch version: {torch.__version__}")
@@ -42,33 +39,10 @@ try:
         if torch.cuda.is_available():
             logger.info(f"CUDA version: {torch.version.cuda}")
         
-        # Custom function to load YOLO model
-        def custom_load_model(weights, device='cpu'):
-            try:
-                # Try loading as a state dict first
-                model = torch.load(weights, map_location=device)
-                if isinstance(model, dict):
-                    if 'model' in model:
-                        model = model['model']
-                    elif 'state_dict' in model:
-                        model = model['state_dict']
-                return model
-            except Exception as e:
-                logger.error(f"Error loading model as state dict: {str(e)}")
-                
-                # If that fails, try loading as a full model
-                try:
-                    from yolov5.models.experimental import attempt_load
-                    model = attempt_load(weights, device=device)
-                    return model
-                except Exception as e:
-                    logger.error(f"Error loading model using attempt_load: {str(e)}")
-                    raise
-
-        # Load YOLOv5 model
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        yolo_model = custom_load_model(yolo_path, device)
-        yolo_model.eval()  # Set the model to evaluation mode
+        yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path=yolo_path, force_reload=True)
+        yolo_model.to(device)
+        yolo_model.eval()
         st.success("YOLO model loaded successfully!")
         logger.info("YOLO model loaded successfully")
 except Exception as e:
@@ -145,10 +119,10 @@ def generate_css(primary_color, secondary_background_color):
     return css
 
 def process_image(img):
-    # Resize for the classification model
+    # Resize for the CNN classification model
     resized_img = cv2.resize(img, (img_length, img_width))
     input_data = np.array([resized_img], dtype=np.float32) / 255.0
-    prediction = model.predict(input_data)
+    prediction = cnn_model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
     
     # If classified as having a polyp and YOLO model is loaded, perform YOLO detection
@@ -156,23 +130,11 @@ def process_image(img):
         # Convert BGR to RGB
         rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         
-        # Prepare image for YOLO
-        img_for_yolo = torch.from_numpy(rgb_img).to('cpu')
-        img_for_yolo = img_for_yolo.permute(2, 0, 1).float().div(255.0).unsqueeze(0)
-        
         # Perform YOLO detection
-        with torch.no_grad():
-            detections = yolo_model(img_for_yolo)[0]
-        
-        # Non-maximum suppression
-        detections = non_max_suppression(detections, 0.25, 0.45)[0]
+        results = yolo_model(rgb_img)
         
         # Draw bounding boxes
-        img_with_boxes = rgb_img.copy()
-        if detections is not None and len(detections):
-            detections[:, :4] = detections[:, :4].round()
-            for *xyxy, conf, cls in detections:
-                cv2.rectangle(img_with_boxes, (int(xyxy[0]), int(xyxy[1])), (int(xyxy[2]), int(xyxy[3])), (255, 0, 0), 2)
+        img_with_boxes = results.render()[0]
         
         return result, prediction[0][0], img_with_boxes
     
