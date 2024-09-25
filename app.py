@@ -7,13 +7,18 @@ from info_page import show_info_page
 from ultralytics import YOLO
 
 # Load the CNN model
-script_dir = os.path.dirname(os.path.abspath(__file__))
-model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
-cnn_model = load_model(model_file_path)
+@st.cache_resource
+def load_cnn_model():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
+    return load_model(model_file_path)
 
 # Load the YOLO model
-yolo_model_path = os.path.join(script_dir, 'models', 'best.pt')
-yolo_model = YOLO(yolo_model_path)
+@st.cache_resource
+def load_yolo_model():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    yolo_model_path = os.path.join(script_dir, 'models', 'best.pt')
+    return YOLO(yolo_model_path)
 
 # Define image dimensions
 img_length = 50
@@ -83,7 +88,7 @@ def generate_css(primary_color, secondary_background_color):
     """
     return css
 
-def process_image(img):
+def process_image(img, cnn_model, yolo_model):
     # Process image with CNN
     img_resized = cv2.resize(img, (img_length, img_width))
     input_data = np.array([img_resized], dtype=np.float32) / 255.0
@@ -126,6 +131,10 @@ def main():
     css = generate_css(primary_color, secondary_background_color)
     st.markdown(css, unsafe_allow_html=True)
 
+    # Load models
+    cnn_model = load_cnn_model()
+    yolo_model = load_yolo_model()
+
     # Main content
     page = st.sidebar.selectbox("Go to", ["PolypDetect", "Info Page", "Comments", "QR Code"])
 
@@ -155,7 +164,7 @@ def main():
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
                 if st.button('Detect Polyps'):
-                    result, probability, yolo_results = process_image(img)
+                    result, probability, yolo_results = process_image(img, cnn_model, yolo_model)
                     st.markdown(f'<p class="prediction">CNN Prediction: {result}</p>', unsafe_allow_html=True)
                     st.markdown(f'<p class="probability">CNN Model Output: {probability}</p>', unsafe_allow_html=True)
                     
@@ -172,7 +181,7 @@ def main():
                         st.image(img, caption='Original Image', width=500)
                         
             elif uploaded_file.type.startswith('video'):
-                video_path = os.path.join(script_dir, 'temp_video.mp4')
+                video_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'temp_video.mp4')
                 with open(video_path, 'wb') as f:
                     f.write(uploaded_file.read())
                 frame_number = st.number_input("Frame Number", value=0, step=1)
@@ -180,7 +189,7 @@ def main():
                 st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', width=500)
                 st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
                 
-                result, probability, yolo_results = process_image(selected_frame)
+                result, probability, yolo_results = process_image(selected_frame, cnn_model, yolo_model)
                 st.markdown(f'<p class="prediction">CNN Prediction: {result}</p>', unsafe_allow_html=True)
                 st.markdown(f'<p class="probability">CNN Model Output: {probability}</p>', unsafe_allow_html=True)
                 
