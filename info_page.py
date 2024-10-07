@@ -1,4 +1,3 @@
-# info_page.py
 import streamlit as st
 
 def generate_css(primary_color, secondary_background_color):
@@ -40,7 +39,6 @@ def show_info_page(primary_color, secondary_background_color):
 
     st.title('Info Page')
 
-    # Information about polyps and pseudopolyps
     st.markdown('<div class="info-content">', unsafe_allow_html=True)
     st.header('About Polyps and Machine Learning')
     st.write("""
@@ -48,7 +46,6 @@ def show_info_page(primary_color, secondary_background_color):
     """)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Information about inflammatory bowel disease
     st.markdown('<div class="info-content">', unsafe_allow_html=True)
     st.header('About Inflammatory Bowel Disease')
     st.write("""
@@ -56,7 +53,6 @@ def show_info_page(primary_color, secondary_background_color):
     """)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Information about the creator
     st.markdown('<div class="info-content">', unsafe_allow_html=True)
     st.header('About Diya Ramakrishnan')
 
