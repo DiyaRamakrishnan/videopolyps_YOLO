@@ -18,6 +18,12 @@ IMG_LENGTH = 50
 IMG_WIDTH = 50
 YOLO_IMG_SIZE = 640  # Standard YOLO input size
 
+# Define class colors
+CLASS_COLORS = {
+    'adenomatous': (0, 255, 0),  # Green
+    'hyperplastic': (255, 165, 0)  # Orange
+}
+
 def process_cnn_classification(img):
     """First stage: CNN classification"""
     resized_img = cv2.resize(img, (IMG_LENGTH, IMG_WIDTH))
@@ -48,16 +54,13 @@ def enhance_image(image):
 
 def preprocess_for_yolo(image, target_size=YOLO_IMG_SIZE):
     """Preprocess image for YOLO model"""
-    # Resize while maintaining aspect ratio
     h, w = image.shape[:2]
     scale = min(target_size/w, target_size/h)
     new_w, new_h = int(w * scale), int(h * scale)
     
     resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_LINEAR)
     
-    # Create square image with black padding
     square_img = np.zeros((target_size, target_size, 3), dtype=np.uint8)
-    # Calculate position to paste resized image
     x_offset = (target_size - new_w) // 2
     y_offset = (target_size - new_h) // 2
     square_img[y_offset:y_offset+new_h, x_offset:x_offset+new_w] = resized
@@ -65,7 +68,7 @@ def preprocess_for_yolo(image, target_size=YOLO_IMG_SIZE):
     return square_img, (scale, x_offset, y_offset)
 
 def process_yolo_detection(img, confidence_threshold, iou_threshold=0.45):
-    """Improved YOLO detection with preprocessing and post-processing"""
+    """Improved YOLO detection with polyp classification"""
     # Preprocess image
     processed_img, transform_params = preprocess_for_yolo(img)
     scale, x_offset, y_offset = transform_params
@@ -84,10 +87,8 @@ def process_yolo_detection(img, confidence_threshold, iou_threshold=0.45):
     # Process predictions
     detections = []
     if len(results.pred[0]) > 0:
-        # Apply NMS (Non-Maximum Suppression)
         pred = results.pred[0]
         
-        # Convert boxes back to original image coordinates
         for det in pred:
             bbox = det[:4].clone()
             
@@ -105,34 +106,36 @@ def process_yolo_detection(img, confidence_threshold, iou_threshold=0.45):
             
             conf = float(det[4])
             cls = int(det[5])
+            class_name = results.names[cls]  # 'adenomatous' or 'hyperplastic'
             
             bbox = bbox.round().int().tolist()
             detections.append({
                 'bbox': bbox,
                 'confidence': conf,
-                'class': results.names[cls]
+                'class': class_name
             })
             
-            # Draw rectangle with semi-transparency
+            # Draw rectangle with class-specific color
+            color = CLASS_COLORS[class_name]
             overlay = img_with_boxes.copy()
             cv2.rectangle(overlay, 
                          (bbox[0], bbox[1]), 
                          (bbox[2], bbox[3]), 
-                         (0, 255, 0), 
+                         color, 
                          2)
             
             # Add semi-transparent overlay
             cv2.addWeighted(overlay, 0.7, img_with_boxes, 0.3, 0, img_with_boxes)
             
-            # Add label with confidence
-            label = f'Polyp {conf:.2f}'
+            # Add label with class and confidence
+            label = f'{class_name.capitalize()} {conf:.2f}'
             cv2.putText(img_with_boxes, 
-                        label, 
-                        (bbox[0], bbox[1] - 10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 
-                        0.5, 
-                        (0, 255, 0), 
-                        2)
+                       label, 
+                       (bbox[0], bbox[1] - 10), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 
+                       0.5, 
+                       color, 
+                       2)
     
     return img_with_boxes, detections, enhanced_img
 
@@ -176,17 +179,23 @@ def generate_css(primary_color="#4786a5", secondary_background_color="#f0f2f6"):
             border-radius: 5px;
             background-color: #f8f9fa;
         }}
+        .polyp-adenomatous {{
+            color: #008000;
+        }}
+        .polyp-hyperplastic {{
+            color: #FFA500;
+        }}
     </style>
     """
     return css
 
 def main():
-    st.set_page_config(page_title="Enhanced Two-Stage Polyp Detection", layout="wide")
+    st.set_page_config(page_title="Enhanced Two-Stage Polyp Detection and Classification", layout="wide")
     
     css = generate_css()
     st.markdown(css, unsafe_allow_html=True)
 
-    st.title('Enhanced Two-Stage Polyp Detection System')
+    st.title('Enhanced Two-Stage Polyp Detection and Classification System')
     
     # Enhanced sidebar controls
     st.sidebar.title("Detection Settings")
@@ -206,6 +215,11 @@ def main():
     )
     
     show_preprocessing = st.sidebar.checkbox("Show Preprocessing Steps", value=False)
+
+    # Add legend
+    st.sidebar.markdown("### Classification Legend")
+    st.sidebar.markdown('<p class="polyp-adenomatous">■ Adenomatous Polyp</p>', unsafe_allow_html=True)
+    st.sidebar.markdown('<p class="polyp-hyperplastic">■ Hyperplastic Polyp</p>', unsafe_allow_html=True)
 
     # File uploader
     uploaded_file = st.file_uploader(
@@ -229,7 +243,7 @@ def main():
 
             # If polyp detected, proceed to Stage 2
             if has_polyp:
-                st.markdown("### Stage 2: Enhanced Polyp Localization")
+                st.markdown("### Stage 2: Enhanced Polyp Classification and Localization")
                 result_img, detections, enhanced_img = process_yolo_detection(
                     img_rgb, 
                     confidence_threshold,
@@ -256,7 +270,12 @@ def main():
                 if detections:
                     st.markdown("#### Detection Details:")
                     for i, det in enumerate(detections, 1):
-                        st.write(f"Polyp {i}:")
+                        polyp_class = det['class']
+                        st.markdown(
+                            f"<div class='polyp-{polyp_class}'>Polyp {i}:</div>",
+                            unsafe_allow_html=True
+                        )
+                        st.write(f"- Type: {polyp_class.capitalize()}")
                         st.write(f"- Confidence: {det['confidence']:.2%}")
                         st.write(f"- Bounding Box: {det['bbox']}")
                 else:
