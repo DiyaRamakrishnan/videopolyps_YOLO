@@ -18,6 +18,14 @@ IMG_LENGTH = 50
 IMG_WIDTH = 50
 YOLO_IMG_SIZE = 640  # Standard YOLO input size
 
+def process_cnn_classification(img):
+    """First stage: CNN classification"""
+    resized_img = cv2.resize(img, (IMG_LENGTH, IMG_WIDTH))
+    input_data = np.array([resized_img], dtype=np.float32) / 255.0
+    prediction = cnn_model.predict(input_data)
+    has_polyp = prediction[0][0] > 0.5
+    return has_polyp, prediction[0][0]
+
 def enhance_image(image):
     """Apply image enhancement techniques"""
     # Convert to LAB color space
@@ -128,10 +136,55 @@ def process_yolo_detection(img, confidence_threshold, iou_threshold=0.45):
     
     return img_with_boxes, detections, enhanced_img
 
+def generate_css(primary_color="#4786a5", secondary_background_color="#f0f2f6"):
+    css = f"""
+    <style>
+        body {{
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+        }}
+        .container {{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            justify-content: center;
+        }}
+        .input-side, .output-side {{
+            width: 80%;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }}
+        .input-side {{
+            background-color: {secondary_background_color};
+        }}
+        .output-side {{
+            background-color: #fff;
+        }}
+        .title {{
+            font-size: 2rem;
+            color: {primary_color};
+            margin-bottom: 10px;
+        }}
+        .stage-result {{
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f8f9fa;
+        }}
+    </style>
+    """
+    return css
+
 def main():
     st.set_page_config(page_title="Enhanced Two-Stage Polyp Detection", layout="wide")
     
-    # [Previous CSS code remains the same]
+    css = generate_css()
+    st.markdown(css, unsafe_allow_html=True)
 
     st.title('Enhanced Two-Stage Polyp Detection System')
     
