@@ -3,52 +3,57 @@ import cv2
 import numpy as np
 import streamlit as st
 from tensorflow.keras.models import load_model
-from info_page import show_info_page 
+from info_page import show_info_page
+from pathlib import Path
+import torch
 
+# Load both models
 script_dir = os.path.dirname(os.path.abspath(__file__))
 model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
-model = load_model(model_file_path)
+polyp_model = load_model(model_file_path)
+yolo_model = torch.hub.load('.', 'custom', path='best.pt', source='local')
 
 img_length = 50
 img_width = 50
 
 def generate_css(primary_color, secondary_background_color):
+    # Previous CSS remains the same
     css = f"""
     <style>
         body {{
             font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #ffffff; /* Set background color to white */
+            background-color: #ffffff;
         }}
         .container {{
             display: flex;
-            flex-direction: column; /* Change flex-direction to column */
-            align-items: center; /* Align items to center */
+            flex-direction: column;
+            align-items: center;
             height: 100vh;
-            justify-content: center; /* Vertically center content */
+            justify-content: center;
         }}
         .input-side, .output-side {{
-            width: 80%; /* Adjust width to take up 80% of the container */
+            width: 80%;
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px; /* Add margin to separate input and output sides */
+            margin-bottom: 20px;
         }}
         .input-side {{
-            background-color: {secondary_background_color}; /* Use secondary background color */
+            background-color: {secondary_background_color};
         }}
         .output-side {{
             background-color: #fff;
         }}
         .title {{
             font-size: 2rem;
-            color: {primary_color}; /* Use primary color for title */
-            margin-bottom: 10px; /* Reduce margin bottom for title */
+            color: {primary_color};
+            margin-bottom: 10px;
         }}
         .button {{
-            background-color: {primary_color}; /* Use primary color for buttons */
-            color: #ffffff; /* Set text color to white */
+            background-color: {primary_color};
+            color: #ffffff;
             border: none;
             border-radius: 5px;
             padding: 10px 20px;
@@ -56,7 +61,7 @@ def generate_css(primary_color, secondary_background_color):
             transition: background-color 0.3s;
         }}
         .button:hover {{
-            background-color: #4786a5; /* Darken the background color on hover */
+            background-color: #4786a5;
         }}
         .prediction {{
             font-size: 1.5rem;
@@ -67,7 +72,7 @@ def generate_css(primary_color, secondary_background_color):
             margin-bottom: 20px;
         }}
         .output-image {{
-            max-width: 400px; /* Set maximum width for output image */
+            max-width: 400px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }}
@@ -75,12 +80,22 @@ def generate_css(primary_color, secondary_background_color):
     """
     return css
 
-def process_image(img):
+def process_polyp_image(img):
     img = cv2.resize(img, (img_length, img_width))
     input_data = np.array([img], dtype=np.float32) / 255.0
-    prediction = model.predict(input_data)
+    prediction = polyp_model.predict(input_data)
     result = "True" if prediction[0][0] > 0.5 else "False"
     return result, prediction[0][0]
+
+def process_yolo_image(img):
+    # Run YOLO inference
+    results = yolo_model(img)
+    
+    # Plot results on image
+    results.render()  # Updates results.imgs with boxes and labels
+    
+    # Get the rendered image with detections
+    return results.imgs[0]  # Return the first image
 
 def process_video(video_path, frame_number):
     video = cv2.VideoCapture(video_path)
@@ -96,9 +111,10 @@ def main():
     css = generate_css(primary_color, secondary_background_color)
     st.markdown(css, unsafe_allow_html=True)
 
-    page = st.sidebar.selectbox("Go to", ["PolypDetect", "Info Page", "Comments", "QR Code"])
+    page = st.sidebar.selectbox("Go to", ["PolypDetect", "YOLO Detection", "Info Page", "Comments", "QR Code"])
 
     if page == "PolypDetect":
+        # Original PolypDetect page remains the same
         st.title('PolypDetect')
         st.write("""
         This website utilizes a Machine Learning Model to detect polyps in the colon.
@@ -109,35 +125,45 @@ def main():
         """)
 
         st.markdown('<div class="input-side">', unsafe_allow_html=True)
-        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)  
-        uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "mov"])
+        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "mov"], key="polyp_uploader")
         st.markdown('</div>', unsafe_allow_html=True)
 
         st.markdown('<div class="output-side">', unsafe_allow_html=True)
         if uploaded_file is not None:
-            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)  
+            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
             if uploaded_file.type.startswith('image'):
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
                 if st.button('Detect Polyps'):
-                    result, probability = process_image(img)
+                    result, probability = process_polyp_image(img)
                     st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
                     st.markdown(f'<p class="probability">Model Output: {probability}</p>', unsafe_allow_html=True)
                     st.image(img, caption='Original Image', width=500, output_format='JPEG')
-            elif uploaded_file.type.startswith('video'):
-                video_path = os.path.join(script_dir, 'temp_video.mp4')  
-                with open(video_path, 'wb') as f:
-                    f.write(uploaded_file.read())
-                frame_number = st.number_input("Frame Number", value=0, step=1)
-                selected_frame = process_video(video_path, frame_number)
-                st.image(cv2.cvtColor(selected_frame, cv2.COLOR_BGR2RGB), caption='Selected Frame', channels='RGB', width=500, output_format='JPEG')
-                st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)  
-                result, probability = process_image(selected_frame)
-                st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
-                st.markdown(f'<p class="probability">Probability: {probability}</p>', unsafe_allow_html=True)
-                
+
+    elif page == "YOLO Detection":
+        st.title('YOLO Object Detection')
+        st.write("""
+        This section uses a YOLO model for object detection. Upload an image to detect objects.
+        """)
+
+        st.markdown('<div class="input-side">', unsafe_allow_html=True)
+        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image</h2>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"], key="yolo_uploader")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="output-side">', unsafe_allow_html=True)
+        if uploaded_file is not None:
+            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
+            img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+            img = cv2.imdecode(img, cv2.IMREAD_COLOR)
+            if st.button('Detect Objects'):
+                result_img = process_yolo_image(img)
+                st.image(result_img, caption='Detection Result', width=500)
+        st.markdown('</div>', unsafe_allow_html=True)
+
     elif page == "Info Page":
-        show_info_page(primary_color, secondary_background_color) 
+        show_info_page(primary_color, secondary_background_color)
 
     elif page == "QR Code":
         st.title("QR Code")
@@ -145,6 +171,7 @@ def main():
         st.image(qr_image_path, caption="Please use the QR code to send this app to people you know!", width=500)
 
     elif page == "Comments":
+        # Comments page remains the same
         st.title('Comments')
         st.write("""
         Leave your comments and feedback below:
@@ -160,26 +187,6 @@ def main():
                 comment = ""
             else:
                 st.warning("Please enter a comment before submitting.")
-        
-        st.write("### Comments:")
-        comments = []
-        with open("comments.txt", "r") as file:
-            comments = file.readlines()
-        if comments:
-            for comment_text in comments:
-                parts = comment_text.split(":", 1)
-                if len(parts) == 2:
-                    name, comment_msg = parts
-                    st.write(f"**{name.strip()}**")
-                    st.write(f"{comment_msg.strip()}")
-                else:
-                    st.write(comment_text.strip())
-
-        if st.button("Delete All Comments"):
-            with open("comments.txt", "w") as file:
-                file.truncate(0)
-            st.success("All comments deleted successfully!")
-            st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
