@@ -75,20 +75,43 @@ def generate_css(primary_color="#4786a5", secondary_background_color="#f0f2f6"):
 def process_yolo_image(img, confidence_threshold):
     # Run YOLO inference with confidence threshold
     results = yolo_model(img)
-    results.conf = confidence_threshold  # Set confidence threshold
     
-    # Plot results on image
-    results.render()  # Updates results.imgs with boxes and labels
+    # Get the original image
+    img_with_boxes = img.copy()
     
-    # Get the rendered image with detections
-    return results.imgs[0], results  # Return both the image and results object
+    # Get predictions
+    pred = results.pred[0]
+    pred = pred[pred[:, 4] >= confidence_threshold]
+    
+    # Draw boxes on the image
+    for det in pred:
+        bbox = det[:4].round().int().tolist()
+        conf = float(det[4])
+        cls = int(det[5])
+        label = f'{results.names[cls]} {conf:.2f}'
+        
+        # Draw rectangle
+        color = (0, 255, 0)  # BGR Green color
+        cv2.rectangle(img_with_boxes, 
+                     (bbox[0], bbox[1]), 
+                     (bbox[2], bbox[3]), 
+                     color, 
+                     2)
+        
+        # Add label
+        cv2.putText(img_with_boxes, 
+                    label, 
+                    (bbox[0], bbox[1] - 10), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 
+                    0.5, 
+                    color, 
+                    2)
+    
+    return img_with_boxes, results
 
 def process_video_frame(frame, confidence_threshold):
     # Process a single video frame with YOLO
-    results = yolo_model(frame)
-    results.conf = confidence_threshold
-    results.render()
-    return results.imgs[0], results
+    return process_yolo_image(frame, confidence_threshold)
 
 def main():
     st.set_page_config(page_title="Object Detection App", layout="wide")
@@ -128,7 +151,7 @@ def main():
                 # Process image
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
                 if st.button('Detect Objects'):
                     result_img, results = process_yolo_image(img, confidence_threshold)
@@ -142,8 +165,27 @@ def main():
                     
                     # Display detection information
                     st.markdown("### Detection Details")
-                    df = results.pandas().xyxy[0]  # Get detection results as DataFrame
-                    st.dataframe(df[['name', 'confidence', 'xmin', 'ymin', 'xmax', 'ymax']])
+                    # Convert detection results to DataFrame
+                    if len(results.pred[0]) > 0:
+                        df_data = []
+                        for det in results.pred[0]:
+                            if det[4] >= confidence_threshold:
+                                df_data.append({
+                                    'name': results.names[int(det[5])],
+                                    'confidence': float(det[4]),
+                                    'xmin': int(det[0]),
+                                    'ymin': int(det[1]),
+                                    'xmax': int(det[2]),
+                                    'ymax': int(det[3])
+                                })
+                        if df_data:
+                            import pandas as pd
+                            df = pd.DataFrame(df_data)
+                            st.dataframe(df)
+                        else:
+                            st.write("No objects detected above the confidence threshold.")
+                    else:
+                        st.write("No objects detected.")
 
             elif uploaded_file.type.startswith('video'):
                 # Save uploaded video temporarily
@@ -173,8 +215,27 @@ def main():
                     
                     # Display detection information
                     st.markdown("### Detection Details")
-                    df = results.pandas().xyxy[0]
-                    st.dataframe(df[['name', 'confidence', 'xmin', 'ymin', 'xmax', 'ymax']])
+                    # Convert detection results to DataFrame
+                    if len(results.pred[0]) > 0:
+                        df_data = []
+                        for det in results.pred[0]:
+                            if det[4] >= confidence_threshold:
+                                df_data.append({
+                                    'name': results.names[int(det[5])],
+                                    'confidence': float(det[4]),
+                                    'xmin': int(det[0]),
+                                    'ymin': int(det[1]),
+                                    'xmax': int(det[2]),
+                                    'ymax': int(det[3])
+                                })
+                        if df_data:
+                            import pandas as pd
+                            df = pd.DataFrame(df_data)
+                            st.dataframe(df)
+                        else:
+                            st.write("No objects detected above the confidence threshold.")
+                    else:
+                        st.write("No objects detected.")
                 
                 # Clean up temporary file
                 if os.path.exists(temp_video_path):
