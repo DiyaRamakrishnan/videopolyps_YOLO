@@ -72,7 +72,7 @@ def generate_css(primary_color="#4786a5", secondary_background_color="#f0f2f6"):
     """
     return css
 
-ef process_yolo_image(img, confidence_threshold):
+def process_yolo_image(img, confidence_threshold):
     # Run YOLO inference with confidence threshold
     results = yolo_model(img)
     
