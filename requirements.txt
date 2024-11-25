@@ -21,3 +21,5 @@ torchvision==0.16.0
 streamlit==1.29.0
 ultralytics==8.0.0
 dill
+python-multipart
+pillow>=7.1.2

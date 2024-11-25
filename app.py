@@ -2,22 +2,14 @@ import os
 import cv2
 import numpy as np
 import streamlit as st
-from tensorflow.keras.models import load_model
-from info_page import show_info_page
 from pathlib import Path
 import torch
 
-# Load both models
+# Load YOLO model
 script_dir = os.path.dirname(os.path.abspath(__file__))
-model_file_path = os.path.join(script_dir, 'models', 'model_1.h5')
-polyp_model = load_model(model_file_path)
-yolo_model = torch.hub.load('.', 'custom', path='best.pt', source='local')
+yolo_model = torch.hub.load('ultralytics/yolov5', 'custom', path='best.pt')
 
-img_length = 50
-img_width = 50
-
-def generate_css(primary_color, secondary_background_color):
-    # Previous CSS remains the same
+def generate_css(primary_color="#4786a5", secondary_background_color="#f0f2f6"):
     css = f"""
     <style>
         body {{
@@ -80,113 +72,160 @@ def generate_css(primary_color, secondary_background_color):
     """
     return css
 
-def process_polyp_image(img):
-    img = cv2.resize(img, (img_length, img_width))
-    input_data = np.array([img], dtype=np.float32) / 255.0
-    prediction = polyp_model.predict(input_data)
-    result = "True" if prediction[0][0] > 0.5 else "False"
-    return result, prediction[0][0]
-
-def process_yolo_image(img):
-    # Run YOLO inference
+def process_yolo_image(img, confidence_threshold):
+    # Run YOLO inference with confidence threshold
     results = yolo_model(img)
+    results.conf = confidence_threshold  # Set confidence threshold
     
     # Plot results on image
     results.render()  # Updates results.imgs with boxes and labels
     
     # Get the rendered image with detections
-    return results.imgs[0]  # Return the first image
+    return results.imgs[0], results  # Return both the image and results object
 
-def process_video(video_path, frame_number):
-    video = cv2.VideoCapture(video_path)
-    video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
-    ret, frame = video.read()
-    video.release()
-    return frame
+def process_video_frame(frame, confidence_threshold):
+    # Process a single video frame with YOLO
+    results = yolo_model(frame)
+    results.conf = confidence_threshold
+    results.render()
+    return results.imgs[0], results
 
 def main():
-    primary_color = st.config.get_option("theme.primaryColor")
-    secondary_background_color = st.config.get_option("theme.secondaryBackgroundColor")
-
-    css = generate_css(primary_color, secondary_background_color)
+    st.set_page_config(page_title="Object Detection App", layout="wide")
+    
+    css = generate_css()
     st.markdown(css, unsafe_allow_html=True)
 
-    page = st.sidebar.selectbox("Go to", ["PolypDetect", "YOLO Detection", "Info Page", "Comments", "QR Code"])
+    page = st.sidebar.selectbox("Go to", ["Object Detection", "Info", "Comments"])
 
-    if page == "PolypDetect":
-        # Original PolypDetect page remains the same
-        st.title('PolypDetect')
-        st.write("""
-        This website utilizes a Machine Learning Model to detect polyps in the colon.
-        Polyps are clumps of cells that form on the lining of the colon.
-        Polyps have been linked to high severity in patients who have an Inflammatory Bowl Disease (IBS).
-        This website can help doctors to ensure that they identify all polyps, as some can be discrete.
-        Please remember that the model is not perfect, so use it as a second method.
-        """)
+    if page == "Object Detection":
+        st.title('Object Detection')
+        
+        # Sidebar controls
+        st.sidebar.title("Detection Settings")
+        confidence_threshold = st.sidebar.slider(
+            "Confidence Threshold",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.25,
+            step=0.05
+        )
 
+        # File uploader
         st.markdown('<div class="input-side">', unsafe_allow_html=True)
-        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image or Video</h2>', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Choose an image or video...", type=["jpg", "jpeg", "png", "mp4", "mov"], key="polyp_uploader")
+        st.markdown('<h2 class="title">Upload Media</h2>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader(
+            "Choose an image or video...", 
+            type=["jpg", "jpeg", "png", "mp4", "mov"]
+        )
         st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="output-side">', unsafe_allow_html=True)
         if uploaded_file is not None:
-            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
+            st.markdown('<div class="output-side">', unsafe_allow_html=True)
+            st.markdown('<h2 class="title">Detection Result</h2>', unsafe_allow_html=True)
+
             if uploaded_file.type.startswith('image'):
+                # Process image
                 img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
                 img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-                if st.button('Detect Polyps'):
-                    result, probability = process_polyp_image(img)
-                    st.markdown(f'<p class="prediction">Prediction: {result}</p>', unsafe_allow_html=True)
-                    st.markdown(f'<p class="probability">Model Output: {probability}</p>', unsafe_allow_html=True)
-                    st.image(img, caption='Original Image', width=500, output_format='JPEG')
+                img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert BGR to RGB
 
-    elif page == "YOLO Detection":
-        st.title('YOLO Object Detection')
+                if st.button('Detect Objects'):
+                    result_img, results = process_yolo_image(img, confidence_threshold)
+                    
+                    # Display results
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.image(img, caption='Original Image', use_column_width=True)
+                    with col2:
+                        st.image(result_img, caption='Detection Result', use_column_width=True)
+                    
+                    # Display detection information
+                    st.markdown("### Detection Details")
+                    df = results.pandas().xyxy[0]  # Get detection results as DataFrame
+                    st.dataframe(df[['name', 'confidence', 'xmin', 'ymin', 'xmax', 'ymax']])
+
+            elif uploaded_file.type.startswith('video'):
+                # Save uploaded video temporarily
+                temp_video_path = os.path.join(script_dir, 'temp_video.mp4')
+                with open(temp_video_path, 'wb') as f:
+                    f.write(uploaded_file.read())
+
+                # Video frame selection
+                video = cv2.VideoCapture(temp_video_path)
+                total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+                frame_number = st.slider("Select Frame", 0, total_frames-1, 0)
+                
+                video.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+                ret, frame = video.read()
+                video.release()
+                
+                if ret:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    result_img, results = process_video_frame(frame, confidence_threshold)
+                    
+                    # Display results
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.image(frame, caption='Original Frame', use_column_width=True)
+                    with col2:
+                        st.image(result_img, caption='Detection Result', use_column_width=True)
+                    
+                    # Display detection information
+                    st.markdown("### Detection Details")
+                    df = results.pandas().xyxy[0]
+                    st.dataframe(df[['name', 'confidence', 'xmin', 'ymin', 'xmax', 'ymax']])
+                
+                # Clean up temporary file
+                if os.path.exists(temp_video_path):
+                    os.remove(temp_video_path)
+
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    elif page == "Info":
+        st.title("Information")
         st.write("""
-        This section uses a YOLO model for object detection. Upload an image to detect objects.
+        This application uses a YOLO (You Only Look Once) model for object detection.
+        The model can detect objects in both images and videos.
+        
+        ### Features:
+        - Upload images or videos for detection
+        - Adjust confidence threshold for detections
+        - View detection results with bounding boxes
+        - Get detailed information about detected objects
+        
+        ### How to use:
+        1. Select 'Object Detection' from the sidebar
+        2. Upload an image or video file
+        3. Adjust the confidence threshold if needed
+        4. Click 'Detect Objects' for images or select a frame for videos
+        5. View the results and detection details
         """)
-
-        st.markdown('<div class="input-side">', unsafe_allow_html=True)
-        st.markdown('<h2 class="title" style="color: #4786a5;">Upload Image</h2>', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"], key="yolo_uploader")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="output-side">', unsafe_allow_html=True)
-        if uploaded_file is not None:
-            st.markdown('<h2 class="title" style="color: #4786a5;">Detection Result</h2>', unsafe_allow_html=True)
-            img = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-            img = cv2.imdecode(img, cv2.IMREAD_COLOR)
-            if st.button('Detect Objects'):
-                result_img = process_yolo_image(img)
-                st.image(result_img, caption='Detection Result', width=500)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    elif page == "Info Page":
-        show_info_page(primary_color, secondary_background_color)
-
-    elif page == "QR Code":
-        st.title("QR Code")
-        qr_image_path = "polypdetect_qr_code.png"
-        st.image(qr_image_path, caption="Please use the QR code to send this app to people you know!", width=500)
 
     elif page == "Comments":
-        # Comments page remains the same
         st.title('Comments')
-        st.write("""
-        Leave your comments and feedback below:
-        """)
+        st.write("Leave your comments and feedback below:")
 
         user_name = st.text_input("Your Name", max_chars=50)
         comment = st.text_area("Your Comment", max_chars=200)
+        
         if st.button("Submit"):
             if len(comment.strip()) > 0:
-                with open("comments.txt", "a") as file:
+                comments_file = os.path.join(script_dir, "comments.txt")
+                with open(comments_file, "a") as file:
                     file.write(f"{user_name}: {comment}\n")
                 st.success("Comment submitted successfully!")
-                comment = ""
             else:
                 st.warning("Please enter a comment before submitting.")
+        
+        # Display existing comments
+        st.write("### Previous Comments:")
+        comments_file = os.path.join(script_dir, "comments.txt")
+        if os.path.exists(comments_file):
+            with open(comments_file, "r") as file:
+                comments = file.readlines()
+                for comment in comments:
+                    st.text(comment.strip())
 
 if __name__ == "__main__":
     main()
