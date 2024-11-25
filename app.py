@@ -72,7 +72,7 @@ def generate_css(primary_color="#4786a5", secondary_background_color="#f0f2f6"):
     """
     return css
 
-def process_yolo_image(img, confidence_threshold):
+ef process_yolo_image(img, confidence_threshold):
     # Run YOLO inference with confidence threshold
     results = yolo_model(img)
     
@@ -159,9 +159,9 @@ def main():
                     # Display results
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.image(img, caption='Original Image', use_column_width=True)
+                        st.image(img, caption='Original Image', use_container_width=True)
                     with col2:
-                        st.image(result_img, caption='Detection Result', use_column_width=True)
+                        st.image(result_img, caption='Detection Result', use_container_width=True)
                     
                     # Display detection information
                     st.markdown("### Detection Details")
@@ -181,7 +181,7 @@ def main():
                         if df_data:
                             import pandas as pd
                             df = pd.DataFrame(df_data)
-                            st.dataframe(df)
+                            st.dataframe(df, use_container_width=True)
                         else:
                             st.write("No objects detected above the confidence threshold.")
                     else:
@@ -209,9 +209,9 @@ def main():
                     # Display results
                     col1, col2 = st.columns(2)
                     with col1:
-                        st.image(frame, caption='Original Frame', use_column_width=True)
+                        st.image(frame, caption='Original Frame', use_container_width=True)
                     with col2:
-                        st.image(result_img, caption='Detection Result', use_column_width=True)
+                        st.image(result_img, caption='Detection Result', use_container_width=True)
                     
                     # Display detection information
                     st.markdown("### Detection Details")
@@ -231,7 +231,7 @@ def main():
                         if df_data:
                             import pandas as pd
                             df = pd.DataFrame(df_data)
-                            st.dataframe(df)
+                            st.dataframe(df, use_container_width=True)
                         else:
                             st.write("No objects detected above the confidence threshold.")
                     else:
