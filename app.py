@@ -190,12 +190,12 @@ def generate_css(primary_color="#4786a5", secondary_background_color="#f0f2f6"):
     return css
 
 def main():
-    st.set_page_config(page_title="Enhanced Two-Stage Polyp Detection and Classification", layout="wide")
+    st.set_page_config(page_title="PolypDetect", layout="wide")
     
     css = generate_css()
     st.markdown(css, unsafe_allow_html=True)
 
-    st.title('Enhanced Two-Stage Polyp Detection and Classification System')
+    st.title('PolypDetect')
     
     # Enhanced sidebar controls
     st.sidebar.title("Detection Settings")
@@ -243,7 +243,7 @@ def main():
 
             # If polyp detected, proceed to Stage 2
             if has_polyp:
-                st.markdown("### Stage 2: Enhanced Polyp Classification and Localization")
+                st.markdown("### Stage 2: YOLO Classification")
                 result_img, detections, enhanced_img = process_yolo_detection(
                     img_rgb, 
                     confidence_threshold,
