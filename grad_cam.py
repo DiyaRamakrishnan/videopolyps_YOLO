@@ -37,13 +37,11 @@ def get_grad_cam(model, img_array, class_index, img_length, img_width):
 
     max_heatmap = np.max(heatmap)
     
-    # Handle the case where max_heatmap is zero
     if max_heatmap == 0:
         print("Warning: Maximum value in heatmap is zero. Setting a small value.")
-        heatmap += 1e-10  # Set a small value to avoid division by zero
-        max_heatmap = np.max(heatmap)  # Update max_heatmap
+        heatmap += 1e-10 
+        max_heatmap = np.max(heatmap) 
     
-    # Check if max_heatmap is still zero and handle it
     if max_heatmap == 0:
         print("Warning: Maximum value in heatmap is still zero. Check the model or input.")
         return None
@@ -51,7 +49,6 @@ def get_grad_cam(model, img_array, class_index, img_length, img_width):
     heatmap /= max_heatmap
     heatmap = heatmap[0]
 
-    # Print heatmap for debugging
     print("Heatmap:", heatmap)
 
     img = img_array[0]
@@ -62,7 +59,6 @@ def get_grad_cam(model, img_array, class_index, img_length, img_width):
     img = img.astype(np.uint8)
     heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET).astype(np.uint8)
 
-    # Print max heatmap value for debugging
     print("Max Heatmap Value:", np.max(heatmap))
 
     superimposed_img = cv2.addWeighted(img, 0.6, heatmap_colored, 0.4, 0)
